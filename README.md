@@ -1,1 +1,2 @@
 # Event-Management
+Good afternoon, this is Nkosinathi Maseko this was just an initail test example that me and Mr. Makhata will be working on although most of it was created with AI we will be trying to change some of the styles and some codes that somewhat resemble the first prototype we had.
