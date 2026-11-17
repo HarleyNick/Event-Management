@@ -1,0 +1,855 @@
+/* COLOURS: taken from the original screenshot (near-black panels, crimson accent, violet and green status colours). */
+
+/* ========== 1. COLOURS ==========
+   Every colour is a variable (--name). Light mode is the default block below;
+   the two dark blocks after it swap the same variables, so the whole page re-colours at once. */
+:root {
+  --bg: #f3f3f6;
+  --panel: #fff;
+  --panel2: #f7f7fa;
+  --line: #dcdde5;
+  --text: #16171d;
+  --soft: #62647a;
+  --red: #d90f45;
+  --violet: #5a49f0;
+  --ok: #0b9367;
+  --amber: #a86a0a;
+  box-sizing: border-box;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Keeps content clear of phone notches and rounded corners. */
+html {
+  scroll-padding-top: env(safe-area-inset-top, 0px);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0d0e12;
+    --panel: #13141a;
+    --panel2: #191a22;
+    --line: #262833;
+    --text: #f1f2f6;
+    --soft: #9496a6;
+    --red: #f0184f;
+    --violet: #7c6dff;
+    --ok: #2fd49c;
+    --amber: #f5b942;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0d0e12;
+  --panel: #13141a;
+  --panel2: #191a22;
+  --line: #262833;
+  --text: #f1f2f6;
+  --soft: #9496a6;
+  --red: #f0184f;
+  --violet: #7c6dff;
+  --ok: #2fd49c;
+  --amber: #f5b942;
+}
+
+/* ========== 2. BASE STYLES ==========
+   Rules that apply everywhere. "border-box" makes widths include padding, which keeps layouts predictable. */
+* {
+  box-sizing: border-box;
+}
+
+/* Page background, text colour, and the body font (Inter, 17px). */
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font:
+    17px/1.65 Inter,
+    system-ui,
+    sans-serif;
+}
+
+/* Headings use the bold Archivo font with slightly tight letter spacing. */
+h1,
+h2,
+h3 {
+  font-family: Archivo, Inter, sans-serif;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  margin: 0 0 0.5rem;
+}
+h3 {
+  font-size: 1.2rem;
+}
+p {
+  margin: 0.35rem 0 1rem;
+}
+.soft {
+  color: var(--soft);
+}
+.red {
+  color: var(--red);
+}
+
+/* Small uppercase labels in the monospace font (tags, headings of small boxes). */
+.mono,
+.tag,
+.lbl {
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 0.78rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* A clear red outline for people who use the keyboard (Tab key). */
+:focus-visible {
+  outline: 2px solid var(--red);
+  outline-offset: 2px;
+}
+svg {
+  flex: none;
+}
+[hidden] {
+  display: none !important;
+}
+/* LAYOUT: a narrow icon rail on the left; hovering it slides out the full menu */
+
+/* ========== 3. LAYOUT: THE ICON RAIL AND THE MAIN AREA ==========
+   .app wraps everything. The sidebar is fixed on the left; .main leaves room for it. */
+.app {
+  min-height: 100vh;
+}
+.main {
+  margin-left: 68px;
+  transition: margin-left 0.22s ease;
+}
+.app.pin .main {
+  margin-left: 320px;
+}
+.main {
+  min-width: 0;
+}
+
+/* The sidebar: a narrow 68px strip that stays in place while you scroll. */
+.sidebar {
+  position: fixed;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 68px;
+  z-index: 30;
+  background: var(--panel);
+  border-right: 1px solid var(--line);
+  padding: 12px 10px;
+  overflow: hidden;
+  transition:
+    width 0.22s ease,
+    box-shadow 0.22s;
+}
+
+/* Hover or keyboard focus (or the pin button) slides the sidebar out to full width. */
+.sidebar:hover,
+.sidebar:focus-within,
+.sidebar.pinned {
+  width: 320px;
+}
+.sidebar:hover:not(.pinned),
+.sidebar:focus-within:not(.pinned) {
+  box-shadow: 12px 0 32px rgba(0, 0, 0, 0.35);
+}
+
+/* ".fade" = text that is hidden in the narrow strip and fades in when the sidebar opens. */
+.fade {
+  opacity: 0;
+  transition: opacity 0.12s;
+  white-space: nowrap;
+}
+.sidebar:hover .fade,
+.sidebar:focus-within .fade,
+.sidebar.pinned .fade {
+  opacity: 1;
+  transition-delay: 0.1s;
+}
+
+/* Logo and name at the top of the sidebar. */
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 48px;
+  margin-bottom: 12px;
+  padding-left: 2px;
+}
+.logo {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  background: #fff;
+  color: #0d0e12;
+  font:
+    700 0.9rem "JetBrains Mono",
+    monospace;
+}
+.brand b {
+  display: block;
+  font-family: Archivo, sans-serif;
+  font-weight: 800;
+  line-height: 1.1;
+}
+.brand small {
+  color: var(--red);
+  font-family: "JetBrains Mono", monospace;
+  letter-spacing: 0.1em;
+}
+
+/* The pin button that keeps the menu open. */
+.pinbtn {
+  margin-left: auto;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: var(--panel2);
+  color: var(--soft);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+.pinbtn.on {
+  color: var(--red);
+  border-color: var(--red);
+}
+
+/* The small "User role" box that shows who is signed in. */
+.rolebox {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border: 1px solid var(--line);
+  background: var(--panel2);
+  border-radius: 10px;
+  padding: 8px 12px;
+  margin-bottom: 14px;
+  height: 42px;
+}
+.rolebox b {
+  color: var(--red);
+  border: 1px solid var(--red);
+  border-radius: 6px;
+  padding: 1px 8px;
+  font-size: 0.72rem;
+}
+
+/* The menu list. minmax(0,1fr) stops long labels from pushing the layout wider. */
+.sidebar ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
+}
+
+/* One menu button: icon on the left, label in the middle, number key on the right. */
+.nav {
+  width: 100%;
+  height: 50px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 0 12px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+.nav:hover {
+  background: var(--panel2);
+}
+.nav.on {
+  border-color: var(--red);
+  background: var(--panel2);
+  box-shadow: inset 3px 0 0 var(--red);
+}
+.nav .t {
+  flex: 1;
+  min-width: 0;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.nav .t b {
+  display: block;
+  font-weight: 500;
+  font-size: 0.97rem;
+}
+.nav .t small {
+  color: var(--soft);
+  font-size: 0.78rem;
+}
+
+/* The little number badge (press 1, 2, 3... to jump to that page). */
+.key {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  display: grid;
+  place-items: center;
+  font:
+    500 0.75rem "JetBrains Mono",
+    monospace;
+  color: var(--soft);
+}
+/* TOP AREA: broadcast bar, tags, event switcher, page title, countdown */
+
+/* ========== 4. TOP AREA ==========
+   The red broadcast bar, the tags, the event switcher, the page title and the countdown. */
+.bcast {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 20px;
+  background: color-mix(in srgb, var(--red) 12%, var(--bg));
+  border-bottom: 1px solid color-mix(in srgb, var(--red) 40%, var(--bg));
+  color: var(--red);
+  overflow: hidden;
+}
+.bcast span {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.bcast .x {
+  margin-left: auto;
+  background: none;
+  border: 0;
+  color: inherit;
+  cursor: pointer;
+  padding: 4px;
+}
+
+/* The small red dot at the start of the broadcast bar. */
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--red);
+  flex: none;
+}
+
+/* The header block under the broadcast bar. */
+.top {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px 28px;
+  justify-content: space-between;
+  align-items: flex-end;
+  padding: 24px 36px;
+  border-bottom: 1px solid var(--line);
+}
+
+/* A simple row of items that wraps onto a new line when space runs out. */
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+/* Small outlined label (e.g. "Submissions open"). .r = red, .g = green. */
+.tag {
+  border: 1px solid var(--line);
+  background: var(--panel2);
+  border-radius: 6px;
+  padding: 3px 9px;
+  color: var(--soft);
+}
+.tag.r {
+  color: var(--red);
+  border-color: var(--red);
+}
+.tag.g {
+  color: var(--ok);
+  border-color: var(--ok);
+}
+
+/* The big page title in the header (e.g. LIVE PROGRAM & KEYNOTES). */
+.ptitle {
+  font:
+    800 1.7rem Archivo,
+    sans-serif;
+  letter-spacing: -0.02em;
+  text-transform: uppercase;
+  margin: 18px 0 0;
+}
+
+/* Form fields: dropdowns, text boxes and text areas share one look. */
+select,
+input,
+textarea {
+  font: inherit;
+  color: var(--text);
+  background: var(--panel2);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 9px 12px;
+  min-height: 42px;
+}
+
+/* Buttons. .btn.primary is the filled red one. */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 42px;
+  padding: 0 14px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--text);
+  font:
+    500 0.95rem Inter,
+    sans-serif;
+  cursor: pointer;
+}
+.btn:hover {
+  border-color: var(--soft);
+}
+.btn.primary {
+  background: var(--red);
+  border-color: var(--red);
+  color: #fff;
+  font-weight: 700;
+}
+
+/* The code-freeze countdown box. */
+.freeze {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 8px 14px;
+  background: var(--panel);
+}
+
+/* The hours : minutes : seconds boxes inside the countdown. */
+.digits {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font:
+    700 1.5rem "JetBrains Mono",
+    monospace;
+}
+.digits i {
+  font-style: normal;
+  background: var(--panel2);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 2px 8px;
+}
+.digits .c {
+  color: var(--red);
+  padding: 0 1px;
+  background: none;
+  border: 0;
+}
+.digits .s {
+  color: var(--red);
+}
+
+/* ========== 5. PAGE CONTENT ==========
+   The area that holds the banner and whichever page is open. */
+.page {
+  padding: 36px 40px 96px;
+  max-width: 1320px;
+}
+/* BANNER: the picture is set from JavaScript so the Super Admin can swap it */
+
+/* The event banner. The picture itself is set from JavaScript, so a Super Admin can change it. */
+.banner {
+  position: relative;
+  color: #fff;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 44px;
+  min-height: 360px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  background-size: cover;
+  background-position: center;
+}
+
+/* The row of pills at the top of the banner. */
+.banner .tl {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: auto;
+  padding-bottom: 36px;
+}
+.banner .tl .btn {
+  margin-left: auto;
+}
+
+/* The red "Official program banner" pill and the dark location chip. */
+.bpill {
+  background: var(--red);
+  color: #fff;
+  border-radius: 999px;
+  padding: 4px 14px;
+  font-weight: 700;
+}
+.bchip {
+  background: rgba(10, 10, 14, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 999px;
+  padding: 4px 14px;
+  color: #e8e8ee;
+}
+
+/* The big event title and the track chips inside the banner. */
+.banner h1 {
+  font-size: clamp(2rem, 4.6vw, 3.4rem);
+  max-width: 18ch;
+  margin: 20px 0 12px;
+}
+.banner p {
+  max-width: 60ch;
+  color: #e6e6ee;
+}
+.banner .chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  margin-top: 22px;
+}
+.banner .chips .tag {
+  background: rgba(10, 10, 14, 0.7);
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+/* Two columns on the Live program page: sessions on the left, Q&A on the right. */
+.columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 400px;
+  gap: 44px;
+  align-items: start;
+  margin-top: 48px;
+}
+
+/* Section headings that have a small icon in front of them. */
+.sec {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 1.15rem;
+  text-transform: uppercase;
+}
+
+/* The filter buttons (All, Main Stage, Workshop Lab...) and the login/register switch. */
+.tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 16px 0 26px;
+}
+.tab {
+  border: 0;
+  border-radius: 8px;
+  padding: 8px 14px;
+  background: none;
+  color: var(--soft);
+  cursor: pointer;
+  font:
+    500 0.85rem "JetBrains Mono",
+    monospace;
+  min-height: 40px;
+}
+.tab:hover {
+  background: var(--panel2);
+}
+.tab.on {
+  background: var(--red);
+  color: #fff;
+}
+
+/* ========== 6. CARDS ==========
+   .sess is a session card (also used for mentors, teams and notices). .panel is a plain box. */
+.sess,
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 26px 28px;
+  margin-bottom: 22px;
+}
+
+/* The session that is happening now gets a red outline and a faint red tint. */
+.sess.live {
+  border-color: var(--red);
+  background: color-mix(in srgb, var(--red) 7%, var(--panel));
+}
+
+/* Top row of a session card: type and time on the left, "Save my seat" on the right. */
+.sess-top {
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  color: var(--soft);
+}
+.time {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.9rem;
+}
+
+/* The red "LIVE NOW" label. */
+.livepill {
+  background: var(--red);
+  color: #fff;
+  border-radius: 6px;
+  padding: 2px 8px;
+  font-weight: 700;
+  font-size: 0.72rem;
+}
+.sess h3 {
+  margin: 18px 0 8px;
+}
+.by {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+/* The round speaker avatar with their initials. */
+.av {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1px solid var(--red);
+  background: var(--panel2);
+  display: grid;
+  place-items: center;
+  font:
+    700 0.72rem "JetBrains Mono",
+    monospace;
+  color: var(--red);
+}
+
+/* The "Save my seat" button. .done turns it green once a seat is saved. */
+.rsvp {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 42px;
+  padding: 0 14px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: var(--panel2);
+  color: var(--soft);
+  font:
+    500 0.85rem "JetBrains Mono",
+    monospace;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.rsvp:hover {
+  color: var(--text);
+  border-color: var(--soft);
+}
+.rsvp.done {
+  color: var(--ok);
+  border-color: var(--ok);
+}
+
+/* ========== 7. Q&A PANEL ==========
+   The header, the list of questions, the vote buttons and the question form. */
+.qa-h {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 18px;
+  margin-bottom: 18px;
+}
+
+/* The list of questions, one box per question. */
+ul.qa {
+  list-style: none;
+  margin: 0 0 22px;
+  padding: 0;
+  display: grid;
+  gap: 14px;
+}
+ul.qa li p {
+  font-size: 0.95rem;
+}
+ul.qa li {
+  border: 1px solid var(--line);
+  background: var(--panel2);
+  border-radius: 10px;
+  padding: 18px 20px;
+}
+.qwho {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font:
+    500 0.78rem "JetBrains Mono",
+    monospace;
+  color: var(--soft);
+}
+.qwho b {
+  color: var(--text);
+}
+.qfoot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* The thumbs-up vote button. It turns green once you have voted. */
+.vote {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 34px;
+  padding: 0 12px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: var(--bg);
+  color: var(--soft);
+  font:
+    500 0.85rem "JetBrains Mono",
+    monospace;
+  cursor: pointer;
+}
+.vote:disabled {
+  color: var(--ok);
+  border-color: var(--ok);
+  cursor: default;
+}
+
+/* ========== 8. FORMS AND MESSAGES ==========
+   Spacing for forms, plus error text and notice boxes. */
+form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 14px;
+}
+.two {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 12px;
+}
+.two input {
+  width: 100%;
+}
+.send {
+  display: flex;
+  gap: 12px;
+}
+.send input {
+  flex: 1;
+  min-width: 0;
+}
+.send button {
+  width: 46px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--red);
+  color: #fff;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+}
+label {
+  display: grid;
+  gap: 4px;
+  font-weight: 500;
+}
+.chk {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+input[type="checkbox"] {
+  width: 22px;
+  height: 22px;
+  min-height: 0;
+}
+
+/* Red error text and the purple notice box (e.g. "Banner updated"). */
+.err {
+  color: var(--red);
+  font-weight: 700;
+  margin: 0;
+  min-height: 1.2em;
+}
+.note {
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--violet);
+  background: var(--panel);
+}
+
+/* A narrow box used for the login page and the Super Admin console. */
+.narrow {
+  max-width: 520px;
+  display: grid;
+  gap: 18px;
+}
+.narrow > * {
+  margin: 0;
+}
+
+/* ========== 9. SMALL SCREENS AND ACCESSIBILITY ==========
+   Below 1000px the two columns stack; below 700px the spacing tightens for phones. */
+@media (max-width: 1000px) {
+  .columns {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 700px) {
+  .app.pin .main {
+    margin-left: 68px;
+  }
+  .top,
+  .page {
+    padding-left: 18px;
+    padding-right: 18px;
+  }
+  .banner {
+    padding: 24px;
+  }
+}
+
+/* Switches off animation for people who asked their device for less motion. */
+@media (prefers-reduced-motion: reduce) {
+  .sidebar,
+  .fade {
+    transition: none;
+  }
+}

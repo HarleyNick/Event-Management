@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <!-- viewport-fit=cover lets the page use the full phone screen; the CSS keeps content clear of notches. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Hackathon portal</title>
+
+    <!-- Fonts from Google: Archivo (headings), Inter (body text), JetBrains Mono (small labels). -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Archivo:wght@800&family=Inter:wght@400;500;700&family=JetBrains+Mono:wght@500;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- All the colours, spacing and layout live in styles.css. -->
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+
+  <body>
+    <!--
+      The page is mostly empty boxes on purpose.
+      script.js fills each box (looked up by its id) and redraws it whenever something changes.
+    -->
+    <div class="app" id="app">
+      <!-- Left icon rail. Slides out on hover. Filled by drawSidebar() in script.js. -->
+      <nav class="sidebar" id="sidebar" aria-label="Main menu"></nav>
+
+      <!-- Everything to the right of the rail. -->
+      <div class="main">
+        <!-- Red broadcast bar. Filled by drawBcast() and updated every second by tick(). -->
+        <div class="bcast mono" id="bcast"></div>
+
+        <!-- Header: tags, event switcher, page title, theme and login buttons, countdown. Filled by drawTop(). -->
+        <header class="top" id="top"></header>
+
+        <main class="page">
+          <!-- Event banner. The picture and text come from the selected event. Filled by drawBanner(). -->
+          <section class="banner" id="banner"></section>
+
+          <!-- The open page (Live program, Mentors, Teams...). Filled by drawPage(). -->
+          <div id="page"></div>
+        </main>
+      </div>
+    </div>
+
+    <!-- Load the JavaScript last, so the boxes above already exist when it runs. -->
+    <script src="script.js"></script>
+  </body>
+</html>
