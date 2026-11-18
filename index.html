@@ -2,10 +2,11 @@
 <html lang="en" data-theme="dark">
   <head>
     <meta charset="UTF-8" />
+    <!-- viewport-fit=cover lets the page use the full phone screen; the CSS keeps content clear of notches. -->
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>Hackathon portal</title>
 
-    <!-- Fonts: Archivo (headings), Inter (body), JetBrains Mono (labels). -->
+    <!-- Fonts from Google: Archivo (headings), Inter (body text), JetBrains Mono (small labels). -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -13,39 +14,40 @@
       rel="stylesheet"
     />
 
-    <!-- All visuals live here. -->
+    <!-- All the colours, spacing and layout live in styles.css. -->
     <link rel="stylesheet" href="styles.css" />
   </head>
 
-  <body class="portal">
-    <!-- Hover sidebar (profile, event switcher, theme, log in/out). Filled by drawSidebar(). -->
-    <aside class="sidebar" id="sidebar" aria-label="Profile and settings"></aside>
+  <body>
+    <!-- Page structure follows the wireframe, top to bottom. script.js fills each box by its id. -->
+    <!-- Hover sidebar: profile, event switcher, theme and log in/out. Filled by drawSidebar(). -->
+    <aside id="sidebar" aria-label="Profile and settings"></aside>
 
     <div class="app" id="app">
-      <header class="site-header" id="site-header">
-        <!-- 1. Banner. Filled by drawBanner(). -->
-        <section class="banner" id="banner" aria-label="Event banner"></section>
-        <!-- 2. Main menu. Filled by drawNav(). -->
-        <nav class="topnav" id="main-nav" aria-label="Main menu"></nav>
-      </header>
+      <!-- 1. Hills banner (picture and event title). Filled by drawBanner(). -->
+      <section class="banner" id="banner"></section>
 
-      <!-- 3. Divider line. -->
-      <div class="divider" aria-hidden="true"></div>
+      <!-- 2. Navigation strip + green navigation bar. Filled by drawNav(). -->
+      <nav class="navwrap" id="topnav" aria-label="Main menu"></nav>
 
-      <!-- Broadcast bar (dismissible). Filled by drawBroadcast(). -->
-      <div class="broadcast text-mono" id="broadcast" role="status"></div>
+      <!-- 3. Purple divider line. -->
+      <div class="rule" aria-hidden="true"></div>
 
-      <main class="app__main" id="main">
-        <!-- 4. Toolbar, countdown and Time box. Filled by drawPageHeader(). -->
-        <section class="page-header" id="page-header" aria-label="Page header and countdown"></section>
-        <!-- 5. Active page content. Filled by drawPage(). -->
-        <section class="page" id="page"></section>
-      </main>
+      <!-- Broadcast message (can be closed). Filled by drawBcast(). -->
+      <div class="bcast mono" id="bcast"></div>
+
+      <div class="main">
+        <!-- 4. Toolbar, the four countdown boxes and the Time box. Filled by drawTop(). -->
+        <header class="top" id="top"></header>
+
+        <!-- 5. Heading blocks on the left, mini Q&A panel on the right. Filled by drawPage(). -->
+        <main class="page"><div id="page"></div></main>
+      </div>
     </div>
 
     <!-- Floating Mini Q&A bubble. Filled by drawQA(). -->
-    <aside class="qa-widget" id="qa-widget" aria-label="Mini Q&amp;A"></aside>
+    <div class="qa-fab" id="qaFloat"></div>
 
-    <script src="script.js" defer></script>
+    <script src="script.js"></script>
   </body>
 </html>
