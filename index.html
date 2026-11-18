@@ -2,11 +2,10 @@
 <html lang="en" data-theme="dark">
   <head>
     <meta charset="UTF-8" />
-    <!-- viewport-fit=cover lets the page use the full phone screen; the CSS keeps content clear of notches. -->
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>Hackathon portal</title>
 
-    <!-- Fonts from Google: Archivo (headings), Inter (body text), JetBrains Mono (small labels). -->
+    <!-- Fonts: Archivo (headings), Inter (body), JetBrains Mono (labels). -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -14,38 +13,39 @@
       rel="stylesheet"
     />
 
-    <!-- All the colours, spacing and layout live in styles.css. -->
+    <!-- All visuals live here. -->
     <link rel="stylesheet" href="styles.css" />
   </head>
 
-  <body>
-    <!--
-      The page is mostly empty boxes on purpose.
-      script.js fills each box (looked up by its id) and redraws it whenever something changes.
-    -->
+  <body class="portal">
+    <!-- Hover sidebar (profile, event switcher, theme, log in/out). Filled by drawSidebar(). -->
+    <aside class="sidebar" id="sidebar" aria-label="Profile and settings"></aside>
+
     <div class="app" id="app">
-      <!-- Left icon rail. Slides out on hover. Filled by drawSidebar() in script.js. -->
-      <nav class="sidebar" id="sidebar" aria-label="Main menu"></nav>
+      <header class="site-header" id="site-header">
+        <!-- 1. Banner. Filled by drawBanner(). -->
+        <section class="banner" id="banner" aria-label="Event banner"></section>
+        <!-- 2. Main menu. Filled by drawNav(). -->
+        <nav class="topnav" id="main-nav" aria-label="Main menu"></nav>
+      </header>
 
-      <!-- Everything to the right of the rail. -->
-      <div class="main">
-        <!-- Red broadcast bar. Filled by drawBcast() and updated every second by tick(). -->
-        <div class="bcast mono" id="bcast"></div>
+      <!-- 3. Divider line. -->
+      <div class="divider" aria-hidden="true"></div>
 
-        <!-- Header: tags, event switcher, page title, theme and login buttons, countdown. Filled by drawTop(). -->
-        <header class="top" id="top"></header>
+      <!-- Broadcast bar (dismissible). Filled by drawBroadcast(). -->
+      <div class="broadcast text-mono" id="broadcast" role="status"></div>
 
-        <main class="page">
-          <!-- Event banner. The picture and text come from the selected event. Filled by drawBanner(). -->
-          <section class="banner" id="banner"></section>
-
-          <!-- The open page (Live program, Mentors, Teams...). Filled by drawPage(). -->
-          <div id="page"></div>
-        </main>
-      </div>
+      <main class="app__main" id="main">
+        <!-- 4. Toolbar, countdown and Time box. Filled by drawPageHeader(). -->
+        <section class="page-header" id="page-header" aria-label="Page header and countdown"></section>
+        <!-- 5. Active page content. Filled by drawPage(). -->
+        <section class="page" id="page"></section>
+      </main>
     </div>
 
-    <!-- Load the JavaScript last, so the boxes above already exist when it runs. -->
-    <script src="script.js"></script>
+    <!-- Floating Mini Q&A bubble. Filled by drawQA(). -->
+    <aside class="qa-widget" id="qa-widget" aria-label="Mini Q&amp;A"></aside>
+
+    <script src="script.js" defer></script>
   </body>
 </html>

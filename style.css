@@ -1,855 +1,700 @@
-/* COLOURS: taken from the original screenshot (near-black panels, crimson accent, violet and green status colours). */
+/* =====================================================================
+   styles.css : the only place visual decisions live.
+   1. Design tokens   2. Base & utilities   3. Layout   4. Sidebar
+   5. Banner & nav    6. Broadcast & page header   7. Pages & cards
+   8. Forms           9. Mini Q&A widget   10. Responsive & motion
+   Styling hooks are CLASSES (BEM). IDs in index.html are for JavaScript only.
+   JavaScript changes appearance only by toggling the .is-* state classes
+   or by setting a CSS variable (--banner-image).
+   ===================================================================== */
 
-/* ========== 1. COLOURS ==========
-   Every colour is a variable (--name). Light mode is the default block below;
-   the two dark blocks after it swap the same variables, so the whole page re-colours at once. */
+/* ========== 1. DESIGN TOKENS ========== */
 :root {
-  --bg: #f3f3f6;
-  --panel: #fff;
-  --panel2: #f7f7fa;
-  --line: #dcdde5;
-  --text: #16171d;
-  --soft: #62647a;
-  --red: #d90f45;
-  --violet: #5a49f0;
-  --ok: #0b9367;
-  --amber: #a86a0a;
-  box-sizing: border-box;
-  padding-top: env(safe-area-inset-top, 0px);
-  padding-bottom: env(safe-area-inset-bottom, 0px);
-}
+  /* Colour: light theme is the default; the dark blocks below swap the same names. */
+  --color-bg: #f3f3f6;
+  --color-panel: #fff;
+  --color-panel-2: #f7f7fa;
+  --color-line: #dcdde5;
+  --color-text: #16171d;
+  --color-soft: #62647a;
+  --color-accent: #d90f45;
+  --color-violet: #5a49f0;
+  --color-ok: #0b9367;
+  --color-amber: #a86a0a;
 
-/* Keeps content clear of phone notches and rounded corners. */
-html {
-  scroll-padding-top: env(safe-area-inset-top, 0px);
+  /* Colour: theme-independent */
+  --color-on-accent: #fff;
+  --color-on-banner: #fff;
+  --color-banner-text: #e6e6ee;
+  --color-chip-text: #e8e8ee;
+  --scrim-chip: rgba(10, 10, 14, 0.7);
+  --veil-20: rgba(255, 255, 255, 0.2);
+  --veil-25: rgba(255, 255, 255, 0.25);
+  --veil-35: rgba(255, 255, 255, 0.35);
+  --veil-50: rgba(255, 255, 255, 0.5);
+  --banner-overlay: linear-gradient(180deg, rgba(8, 8, 12, 0.35), rgba(8, 8, 12, 0.7));
+  --banner-image: none; /* set at runtime by script.js */
+
+  /* Typography */
+  --font-heading: Archivo, Inter, sans-serif;
+  --font-body: Inter, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+  --fs-body: 17px;
+  --lh-body: 1.65;
+  --fs-2xs: 0.62rem;
+  --fs-xs: 0.68rem;
+  --fs-sm: 0.72rem;
+  --fs-label: 0.78rem;
+  --fs-ui: 0.85rem;
+  --fs-md: 0.9rem;
+  --fs-btn: 0.95rem;
+  --fs-lg: 1rem;
+  --fs-xl: 1.05rem;
+  --fs-2xl: 1.1rem;
+  --fs-h3: 1.2rem;
+  --fs-countdown: 1.3rem;
+  --fs-time: 1.4rem;
+  --fs-banner-title: clamp(1.3rem, 3vw, 2.1rem);
+  --fs-session-title: clamp(1.3rem, 2.6vw, 1.8rem);
+
+  /* Spacing scale (name = pixels) */
+  --sp-2: 2px;
+  --sp-4: 4px;
+  --sp-6: 6px;
+  --sp-8: 8px;
+  --sp-10: 10px;
+  --sp-12: 12px;
+  --sp-14: 14px;
+  --sp-16: 16px;
+  --sp-18: 18px;
+  --sp-20: 20px;
+  --sp-24: 24px;
+  --sp-28: 28px;
+  --sp-32: 32px;
+  --sp-40: 40px;
+
+  /* Radius */
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 10px;
+  --radius-xl: 14px;
+  --radius-2xl: 16px;
+  --radius-app: 20px;
+  --radius-pill: 999px;
+  --radius-round: 50%;
+
+  /* Shadows & glows */
+  --shadow-sidebar: 6px 0 28px rgba(0, 0, 0, 0.35);
+  --shadow-fab: 0 8px 28px rgba(0, 0, 0, 0.35);
+  --glow-ring: 0 0 0 3px var(--veil-35), 0 0 14px rgba(255, 255, 255, 0.85);
+  --glow-dot: 0 0 8px #fff;
+
+  /* Stacking */
+  --z-sidebar: 50;
+  --z-widget: 60;
+
+  /* Motion */
+  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-std: cubic-bezier(0.4, 0, 0.2, 1);
+  --t-fast: 0.15s;
+  --t-base: 0.25s;
+  --t-theme: 0.35s;
+  --t-slide: 0.28s;
+  --t-morph: 0.42s;
+  --t-spin: 0.55s;
+
+  /* Sizes & layout */
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --rail: 64px;
+  --sidebar-open: 260px;
+  --app-max: 1100px;
+  --side-col: 340px;
+  --control-h: 42px;
+  --control-h-sm: 34px;
+  --tab-h: 40px;
+  --nav-h: 46px;
+  --avatar: 32px;
+  --icon-xl: 20px;
+  --nav-icon: 32px;
+  --checkbox: 22px;
+  --countdown-w: 66px;
+  --countdown-h: 52px;
+  --banner-min-h: clamp(170px, 24vw, 280px);
+  --narrow-w: 520px;
+  --prose-w: 58ch;
+  --widget-fab: 56px;
+  --widget-w: min(380px, calc(100vw - 32px));
+  --widget-h: min(560px, calc(100dvh - 32px - var(--safe-bottom)));
+
+  box-sizing: border-box;
+  padding-top: var(--safe-top);
+  padding-bottom: var(--safe-bottom);
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #0d0e12;
-    --panel: #13141a;
-    --panel2: #191a22;
-    --line: #262833;
-    --text: #f1f2f6;
-    --soft: #9496a6;
-    --red: #f0184f;
-    --violet: #7c6dff;
-    --ok: #2fd49c;
-    --amber: #f5b942;
+    --color-bg: #0d0e12;
+    --color-panel: #13141a;
+    --color-panel-2: #191a22;
+    --color-line: #262833;
+    --color-text: #f1f2f6;
+    --color-soft: #9496a6;
+    --color-accent: #f0184f;
+    --color-violet: #7c6dff;
+    --color-ok: #2fd49c;
+    --color-amber: #f5b942;
   }
 }
 :root[data-theme="dark"] {
-  --bg: #0d0e12;
-  --panel: #13141a;
-  --panel2: #191a22;
-  --line: #262833;
-  --text: #f1f2f6;
-  --soft: #9496a6;
-  --red: #f0184f;
-  --violet: #7c6dff;
-  --ok: #2fd49c;
-  --amber: #f5b942;
+  --color-bg: #0d0e12;
+  --color-panel: #13141a;
+  --color-panel-2: #191a22;
+  --color-line: #262833;
+  --color-text: #f1f2f6;
+  --color-soft: #9496a6;
+  --color-accent: #f0184f;
+  --color-violet: #7c6dff;
+  --color-ok: #2fd49c;
+  --color-amber: #f5b942;
 }
 
-/* ========== 2. BASE STYLES ==========
-   Rules that apply everywhere. "border-box" makes widths include padding, which keeps layouts predictable. */
-* {
-  box-sizing: border-box;
-}
-
-/* Page background, text colour, and the body font (Inter, 17px). */
+/* ========== 2. BASE & UTILITIES ========== */
+* { box-sizing: border-box; }
+html { scroll-padding-top: var(--safe-top); }
 body {
   margin: 0;
-  background: var(--bg);
-  color: var(--text);
-  font:
-    17px/1.65 Inter,
-    system-ui,
-    sans-serif;
+  padding-left: var(--rail);
+  background: var(--color-bg);
+  color: var(--color-text);
+  font: var(--fs-body) / var(--lh-body) var(--font-body);
 }
-
-/* Headings use the bold Archivo font with slightly tight letter spacing. */
-h1,
-h2,
-h3 {
-  font-family: Archivo, Inter, sans-serif;
+h1, h2, h3 {
+  font-family: var(--font-heading);
   font-weight: 800;
   letter-spacing: -0.02em;
   line-height: 1.1;
   margin: 0 0 0.5rem;
 }
-h3 {
-  font-size: 1.2rem;
-}
-p {
-  margin: 0.35rem 0 1rem;
-}
-.soft {
-  color: var(--soft);
-}
-.red {
-  color: var(--red);
-}
+h3 { font-size: var(--fs-h3); }
+p { margin: 0.35rem 0 var(--sp-16); }
+svg { flex: none; }
+:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
 
-/* Small uppercase labels in the monospace font (tags, headings of small boxes). */
-.mono,
-.tag,
-.lbl {
-  font-family: "JetBrains Mono", ui-monospace, monospace;
-  font-size: 0.78rem;
+.text-soft { color: var(--color-soft); }
+.text-mono, .tag, .label {
+  font-family: var(--font-mono);
+  font-size: var(--fs-label);
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
+.cluster { display: flex; flex-wrap: wrap; gap: var(--sp-10); align-items: center; }
+.cluster--center { justify-content: center; }
+.cluster--between { justify-content: space-between; }
 
-/* A clear red outline for people who use the keyboard (Tab key). */
-:focus-visible {
-  outline: 2px solid var(--red);
-  outline-offset: 2px;
-}
-svg {
-  flex: none;
-}
-[hidden] {
-  display: none !important;
-}
-/* LAYOUT: a narrow icon rail on the left; hovering it slides out the full menu */
+/* State classes (toggled by JavaScript) */
+.is-hidden { display: none !important; }
 
-/* ========== 3. LAYOUT: THE ICON RAIL AND THE MAIN AREA ==========
-   .app wraps everything. The sidebar is fixed on the left; .main leaves room for it. */
+/* Soft colour change when the theme switches */
+body, .app, .card, .panel, .broadcast, .tag, .btn, .countdown, .input {
+  transition: background-color var(--t-theme), color var(--t-theme), border-color var(--t-theme);
+}
+
+/* ========== 3. LAYOUT ========== */
 .app {
+  max-width: var(--app-max);
   min-height: 100vh;
+  margin: 0 auto;
+  background: var(--color-panel);
+  border-radius: var(--radius-app) var(--radius-app) 0 0;
+  overflow: hidden;
 }
-.main {
-  margin-left: 68px;
-  transition: margin-left 0.22s ease;
-}
-.app.pin .main {
-  margin-left: 320px;
-}
-.main {
-  min-width: 0;
-}
+.app__main { min-width: 0; }
+.divider { height: 3px; background: var(--color-violet); }
+.page { padding: var(--sp-20) var(--sp-28) 80px; }
 
-/* The sidebar: a narrow 68px strip that stays in place while you scroll. */
+/* ========== 4. SIDEBAR ========== */
 .sidebar {
   position: fixed;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 68px;
-  z-index: 30;
-  background: var(--panel);
-  border-right: 1px solid var(--line);
-  padding: 12px 10px;
+  z-index: var(--z-sidebar);
+  inset: 0 auto 0 0;
+  width: var(--rail);
+  display: flex;
+  flex-direction: column;
+  padding: var(--safe-top) 0 var(--safe-bottom);
+  background: var(--color-accent);
+  color: var(--color-on-accent);
   overflow: hidden;
-  transition:
-    width 0.22s ease,
-    box-shadow 0.22s;
+  transition: width var(--t-slide) var(--ease-out), box-shadow var(--t-slide);
 }
+.sidebar:hover, .sidebar:focus-within { width: var(--sidebar-open); box-shadow: var(--shadow-sidebar); }
+.sidebar :focus-visible { outline-color: #fff; outline-offset: -2px; }
 
-/* Hover or keyboard focus (or the pin button) slides the sidebar out to full width. */
-.sidebar:hover,
-.sidebar:focus-within,
-.sidebar.pinned {
-  width: 320px;
-}
-.sidebar:hover:not(.pinned),
-.sidebar:focus-within:not(.pinned) {
-  box-shadow: 12px 0 32px rgba(0, 0, 0, 0.35);
-}
-
-/* ".fade" = text that is hidden in the narrow strip and fades in when the sidebar opens. */
-.fade {
-  opacity: 0;
-  transition: opacity 0.12s;
+.sidebar__text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
   white-space: nowrap;
+  font-weight: 700;
+  font-size: var(--fs-md);
+  opacity: 0;
+  transition: opacity var(--t-fast);
 }
-.sidebar:hover .fade,
-.sidebar:focus-within .fade,
-.sidebar.pinned .fade {
+.sidebar:hover .sidebar__text, .sidebar:focus-within .sidebar__text {
   opacity: 1;
-  transition-delay: 0.1s;
+  transition: opacity var(--t-base) 0.08s;
 }
-
-/* Logo and name at the top of the sidebar. */
-.brand {
+.sidebar__user {
   display: flex;
   align-items: center;
-  gap: 12px;
-  height: 48px;
-  margin-bottom: 12px;
-  padding-left: 2px;
+  gap: var(--sp-14);
+  height: var(--rail);
+  flex: none;
+  padding: 0 calc((var(--rail) - var(--avatar)) / 2);
+  border-bottom: 1px solid var(--veil-25);
 }
-.logo {
+.sidebar__avatar {
+  width: var(--avatar);
+  height: var(--avatar);
   flex: none;
   display: grid;
   place-items: center;
-  width: 42px;
-  height: 42px;
-  border-radius: 10px;
-  background: #fff;
-  color: #0d0e12;
-  font:
-    700 0.9rem "JetBrains Mono",
-    monospace;
+  border-radius: var(--radius-round);
+  background: var(--veil-25);
+  font: 700 var(--fs-ui) var(--font-mono);
 }
-.brand b {
-  display: block;
-  font-family: Archivo, sans-serif;
-  font-weight: 800;
-  line-height: 1.1;
+.sidebar__name { overflow: hidden; text-overflow: ellipsis; text-transform: uppercase; letter-spacing: 0.04em; }
+.sidebar__role {
+  font: 500 var(--fs-xs) var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  opacity: 0.85;
 }
-.brand small {
-  color: var(--red);
-  font-family: "JetBrains Mono", monospace;
-  letter-spacing: 0.1em;
-}
-
-/* The pin button that keeps the menu open. */
-.pinbtn {
-  margin-left: auto;
-  width: 36px;
-  height: 36px;
-  border-radius: 8px;
-  border: 1px solid var(--line);
-  background: var(--panel2);
-  color: var(--soft);
-  display: grid;
-  place-items: center;
-  cursor: pointer;
-}
-.pinbtn.on {
-  color: var(--red);
-  border-color: var(--red);
-}
-
-/* The small "User role" box that shows who is signed in. */
-.rolebox {
+.sidebar__body { flex: 1; padding: var(--sp-12) 0; overflow-x: hidden; overflow-y: auto; scrollbar-width: none; }
+.sidebar__event {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  border: 1px solid var(--line);
-  background: var(--panel2);
-  border-radius: 10px;
-  padding: 8px 12px;
-  margin-bottom: 14px;
-  height: 42px;
+  gap: var(--sp-14);
+  padding: var(--sp-6) calc((var(--rail) - var(--icon-xl)) / 2);
 }
-.rolebox b {
-  color: var(--red);
-  border: 1px solid var(--red);
-  border-radius: 6px;
-  padding: 1px 8px;
-  font-size: 0.72rem;
-}
-
-/* The menu list. minmax(0,1fr) stops long labels from pushing the layout wider. */
-.sidebar ul {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 8px;
-}
-
-/* One menu button: icon on the left, label in the middle, number key on the right. */
-.nav {
+.sidebar__event .sidebar__text { flex: 1; }
+.sidebar__label { font-weight: 500; opacity: 0.85; margin-bottom: var(--sp-4); }
+.sidebar__select {
   width: 100%;
-  height: 50px;
+  min-height: var(--tab-h);
+  padding: var(--sp-6) var(--sp-10);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--veil-50);
+  background: var(--veil-20);
+  color: #fff;
+  font: 700 var(--fs-ui) var(--font-body);
+  cursor: pointer;
+}
+.sidebar__select option { color: var(--color-text); background: var(--color-panel); }
+.sidebar__footer { flex: none; padding: var(--sp-8) 0; border-top: 1px solid var(--veil-25); }
+.sidebar__item {
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 0 12px;
-  border-radius: 10px;
-  border: 1px solid transparent;
-  background: none;
-  color: var(--text);
+  gap: var(--sp-14);
+  width: 100%;
+  height: var(--nav-h);
+  padding: 0 calc((var(--rail) - var(--icon-xl)) / 2);
+  background: transparent;
+  border: 0;
+  color: inherit;
   font: inherit;
-  cursor: pointer;
   text-align: left;
+  cursor: pointer;
 }
-.nav:hover {
-  background: var(--panel2);
-}
-.nav.on {
-  border-color: var(--red);
-  background: var(--panel2);
-  box-shadow: inset 3px 0 0 var(--red);
-}
-.nav .t {
-  flex: 1;
-  min-width: 0;
-  line-height: 1.2;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.nav .t b {
-  display: block;
-  font-weight: 500;
-  font-size: 0.97rem;
-}
-.nav .t small {
-  color: var(--soft);
-  font-size: 0.78rem;
-}
+.sidebar__item:hover { background: var(--veil-25); }
 
-/* The little number badge (press 1, 2, 3... to jump to that page). */
-.key {
-  width: 24px;
-  height: 24px;
-  border-radius: 6px;
-  background: var(--bg);
-  border: 1px solid var(--line);
+/* Sun / moon toggle: both icons are stacked; the theme attribute decides which shows. */
+.theme-icon { position: relative; width: var(--icon-xl); height: var(--icon-xl); flex: none; }
+.theme-icon__glyph {
+  position: absolute;
+  inset: 0;
+  transition: transform var(--t-spin) var(--ease-std), opacity var(--t-theme);
+}
+:root[data-theme="dark"] .theme-icon__glyph--sun { opacity: 0; transform: rotate(-90deg) scale(0.3); }
+:root[data-theme="dark"] .theme-icon__glyph--moon { opacity: 1; transform: none; }
+:root:not([data-theme="dark"]) .theme-icon__glyph--moon { opacity: 0; transform: rotate(90deg) scale(0.3); }
+:root:not([data-theme="dark"]) .theme-icon__glyph--sun { opacity: 1; transform: none; }
+:root[data-theme="dark"] .theme-label--to-dark { display: none; }
+:root:not([data-theme="dark"]) .theme-label--to-light { display: none; }
+
+/* ========== 5. BANNER & MAIN NAVIGATION ========== */
+.banner {
+  position: relative;
+  min-height: var(--banner-min-h);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  padding: var(--sp-20) var(--sp-28);
+  color: var(--color-on-banner);
+  background-image: var(--banner-image);
+  background-size: cover;
+  background-position: center bottom;
+}
+.banner--custom { background-image: var(--banner-overlay), var(--banner-image); }
+.banner__top { display: flex; flex-wrap: wrap; gap: var(--sp-10); align-items: center; }
+.banner__chip {
+  padding: var(--sp-4) var(--sp-14);
+  border-radius: var(--radius-pill);
+  background: var(--scrim-chip);
+  border: 1px solid var(--veil-20);
+  color: var(--color-chip-text);
+}
+.banner__action { margin-left: auto; }
+.banner__title { max-width: none; margin: var(--sp-10) 0 var(--sp-6); font-size: var(--fs-banner-title); }
+.banner__summary { max-width: 60ch; margin: 0 0 var(--sp-10); font-size: var(--fs-btn); color: var(--color-banner-text); }
+.banner__meta { display: flex; flex-wrap: wrap; gap: var(--sp-10); align-items: center; }
+
+.topnav__strip {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: var(--sp-12);
+  padding: var(--sp-4) var(--sp-12);
+  border-top: 2px solid var(--color-text);
+  border-bottom: 2px solid var(--color-text);
+  font: 800 var(--fs-2xl) Archivo, sans-serif;
+}
+.topnav__menu {
+  display: flex;
+  gap: var(--sp-4);
+  min-height: var(--nav-h);
+  margin: 0;
+  padding: 0 var(--sp-10);
+  list-style: none;
+  background: var(--color-accent);
+  overflow-x: auto;
+}
+.topnav__link {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-8);
+  height: var(--nav-h);
+  padding: 0 var(--sp-14) 0 var(--sp-8);
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--color-on-accent);
+  font: inherit;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.topnav__link:focus-visible { outline-color: #fff; outline-offset: -2px; }
+.topnav__icon {
+  width: var(--nav-icon);
+  height: var(--nav-icon);
   display: grid;
   place-items: center;
-  font:
-    500 0.75rem "JetBrains Mono",
-    monospace;
-  color: var(--soft);
+  border-radius: var(--radius-round);
+  transition: background var(--t-base), color var(--t-base), box-shadow var(--t-base);
 }
-/* TOP AREA: broadcast bar, tags, event switcher, page title, countdown */
+.topnav__label { font-weight: 700; font-size: var(--fs-md); }
+.topnav__link:hover .topnav__icon { background: var(--veil-25); }
+.topnav__link.is-active .topnav__icon { background: #fff; color: var(--color-accent); box-shadow: var(--glow-ring); }
+.topnav__link.is-active::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: var(--sp-2);
+  width: 5px;
+  height: 5px;
+  border-radius: var(--radius-round);
+  background: #fff;
+  box-shadow: var(--glow-dot);
+  transform: translateX(-50%);
+}
 
-/* ========== 4. TOP AREA ==========
-   The red broadcast bar, the tags, the event switcher, the page title and the countdown. */
-.bcast {
+/* ========== 6. BROADCAST & PAGE HEADER ========== */
+.broadcast {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 10px 20px;
-  background: color-mix(in srgb, var(--red) 12%, var(--bg));
-  border-bottom: 1px solid color-mix(in srgb, var(--red) 40%, var(--bg));
-  color: var(--red);
+  gap: var(--sp-10);
+  padding: var(--sp-6) var(--sp-28);
+  background: var(--color-panel-2);
+  color: var(--color-soft);
+  border-bottom: 1px solid var(--color-line);
   overflow: hidden;
 }
-.bcast span {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.bcast .x {
+.broadcast__dot { width: 8px; height: 8px; flex: none; border-radius: var(--radius-round); background: var(--color-violet); }
+.broadcast__message { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.broadcast__close {
   margin-left: auto;
+  padding: var(--sp-4);
   background: none;
   border: 0;
   color: inherit;
   cursor: pointer;
-  padding: 4px;
 }
 
-/* The small red dot at the start of the broadcast bar. */
-.dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--red);
-  flex: none;
-}
-
-/* The header block under the broadcast bar. */
-.top {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 20px 28px;
-  justify-content: space-between;
-  align-items: flex-end;
-  padding: 24px 36px;
-  border-bottom: 1px solid var(--line);
-}
-
-/* A simple row of items that wraps onto a new line when space runs out. */
-.row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  align-items: center;
-}
-
-/* Small outlined label (e.g. "Submissions open"). .r = red, .g = green. */
-.tag {
-  border: 1px solid var(--line);
-  background: var(--panel2);
-  border-radius: 6px;
-  padding: 3px 9px;
-  color: var(--soft);
-}
-.tag.r {
-  color: var(--red);
-  border-color: var(--red);
-}
-.tag.g {
-  color: var(--ok);
-  border-color: var(--ok);
-}
-
-/* The big page title in the header (e.g. LIVE PROGRAM & KEYNOTES). */
-.ptitle {
-  font:
-    800 1.7rem Archivo,
-    sans-serif;
+.page-header { padding: var(--sp-18) var(--sp-28) 0; }
+.page-header__toolbar { display: flex; flex-wrap: wrap; gap: var(--sp-12); justify-content: space-between; align-items: center; }
+.page-header__title {
+  margin: 0;
+  font: 800 var(--fs-xl) Archivo, sans-serif;
   letter-spacing: -0.02em;
   text-transform: uppercase;
-  margin: 18px 0 0;
 }
-
-/* Form fields: dropdowns, text boxes and text areas share one look. */
-select,
-input,
-textarea {
-  font: inherit;
-  color: var(--text);
-  background: var(--panel2);
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  padding: 9px 12px;
-  min-height: 42px;
+.page-header__timer-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) var(--side-col);
+  gap: var(--sp-32);
+  align-items: center;
+  margin-top: var(--sp-18);
 }
+.page-header__timer { display: flex; justify-content: center; }
 
-/* Buttons. .btn.primary is the filled red one. */
+.countdown { display: flex; border: 1px solid var(--color-text); }
+.countdown__cell {
+  width: var(--countdown-w);
+  height: var(--countdown-h);
+  display: grid;
+  place-content: center;
+  text-align: center;
+  border-right: 1px solid var(--color-text);
+}
+.countdown__cell:last-child { border-right: 0; }
+.countdown__value { font: 700 var(--fs-countdown) / 1 var(--font-mono); }
+.countdown__unit { font: var(--fs-2xs) var(--font-mono); text-transform: uppercase; color: var(--color-soft); }
+
+.time-box {
+  display: grid;
+  gap: var(--sp-2);
+  padding: var(--sp-10);
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+  text-align: center;
+}
+.time-box__value { font: 700 var(--fs-time) var(--font-mono); }
+
+.tag {
+  padding: 3px 9px;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-sm);
+  background: var(--color-panel-2);
+  color: var(--color-soft);
+}
+.tag--ok { color: var(--color-ok); border-color: var(--color-ok); }
+
+/* ========== 7. PAGES & CARDS ========== */
+.page__intro { margin-top: var(--sp-20); color: var(--color-soft); }
+.page__list { margin-top: var(--sp-20); }
+.page__empty { margin: var(--sp-40) 0; text-align: center; color: var(--color-soft); }
+
+/* Buttons */
 .btn {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  min-height: 42px;
-  padding: 0 14px;
-  border-radius: 8px;
-  border: 1px solid var(--line);
-  background: var(--panel);
-  color: var(--text);
-  font:
-    500 0.95rem Inter,
-    sans-serif;
+  gap: var(--sp-8);
+  min-height: var(--control-h);
+  padding: 0 var(--sp-14);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-line);
+  background: var(--color-panel);
+  color: var(--color-text);
+  font: 500 var(--fs-btn) var(--font-body);
   cursor: pointer;
 }
-.btn:hover {
-  border-color: var(--soft);
+.btn:hover { border-color: var(--color-soft); }
+.btn--primary { background: var(--color-accent); border-color: var(--color-accent); color: var(--color-on-accent); font-weight: 700; }
+.btn--block { justify-content: center; }
+
+/* Filter tabs and login/register switch */
+.tabs { display: flex; flex-wrap: wrap; gap: var(--sp-8); margin: var(--sp-16) 0 26px; }
+.tabs--center { justify-content: center; }
+.tabs--flush { margin: 0; }
+.tabs__tab {
+  min-height: var(--tab-h);
+  padding: var(--sp-8) var(--sp-14);
+  border: 0;
+  border-radius: var(--radius-md);
+  background: none;
+  color: var(--color-soft);
+  font: 500 var(--fs-ui) var(--font-mono);
+  cursor: pointer;
 }
-.btn.primary {
-  background: var(--red);
-  border-color: var(--red);
-  color: #fff;
+.tabs__tab:hover { background: var(--color-panel-2); }
+.tabs__tab.is-active { background: var(--color-accent); color: var(--color-on-accent); }
+
+/* Live program sessions */
+.session { padding: var(--sp-20) var(--sp-8); border-top: 1px dashed var(--color-line); text-align: center; }
+.session:first-of-type { border-top: 0; }
+.session__title { margin: 0 0 var(--sp-4); font-size: var(--fs-session-title); }
+.session.is-live .session__title { color: var(--color-accent); }
+.session__meta { margin: var(--sp-4) 0; font-weight: 700; }
+.session__about { max-width: var(--prose-w); margin: var(--sp-6) auto var(--sp-10); color: var(--color-soft); }
+.session__speaker { margin: 0 0 var(--sp-12); color: var(--color-accent); }
+.live-pill {
+  padding: var(--sp-2) var(--sp-8);
+  border-radius: var(--radius-sm);
+  background: var(--color-accent);
+  color: var(--color-on-accent);
   font-weight: 700;
+  font-size: var(--fs-sm);
+}
+.rsvp-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-8);
+  min-height: var(--control-h);
+  padding: 0 var(--sp-14);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-line);
+  background: var(--color-panel-2);
+  color: var(--color-soft);
+  font: 500 var(--fs-ui) var(--font-mono);
+  white-space: nowrap;
+  cursor: pointer;
+}
+.rsvp-btn:hover { color: var(--color-text); border-color: var(--color-soft); }
+.rsvp-btn.is-done { color: var(--color-ok); border-color: var(--color-ok); }
+
+/* Cards and panels (mentors, teams, notices, judging, admin, login) */
+.card, .panel {
+  margin-bottom: var(--sp-20);
+  padding: 26px var(--sp-28);
+  background: var(--color-panel);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-xl);
+}
+.card__title { margin: 0; }
+.panel--narrow { max-width: var(--narrow-w); display: grid; gap: var(--sp-18); margin-top: var(--sp-20); }
+.panel--narrow > * { margin: 0; }
+.event-row { margin-top: var(--sp-8); }
+.notice {
+  padding: var(--sp-10) var(--sp-14);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-violet);
+  background: var(--color-panel);
 }
 
-/* The code-freeze countdown box. */
-.freeze {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  padding: 8px 14px;
-  background: var(--panel);
+/* ========== 8. FORMS ========== */
+.form { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--sp-14); }
+.form__row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--sp-12); }
+.form__row .input { width: 100%; }
+.form__field { display: grid; gap: var(--sp-4); font-weight: 500; }
+.form__field--check { display: flex; align-items: center; gap: var(--sp-10); }
+.form__checkbox { width: var(--checkbox); height: var(--checkbox); min-height: 0; }
+.form-error { min-height: 1.2em; margin: 0; color: var(--color-accent); font-weight: 700; }
+.input {
+  min-height: var(--control-h);
+  padding: 9px var(--sp-12);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-md);
+  background: var(--color-panel-2);
+  color: var(--color-text);
+  font: inherit;
 }
 
-/* The hours : minutes : seconds boxes inside the countdown. */
-.digits {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font:
-    700 1.5rem "JetBrains Mono",
-    monospace;
+/* ========== 9. MINI Q&A WIDGET ========== */
+.qa-widget {
+  position: fixed;
+  z-index: var(--z-widget);
+  right: max(var(--sp-16), var(--safe-right));
+  bottom: calc(var(--sp-16) + var(--safe-bottom));
+  width: var(--widget-fab);
+  height: var(--widget-fab);
+  border-radius: calc(var(--widget-fab) / 2);
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+  box-shadow: var(--shadow-fab);
+  overflow: hidden;
+  transition: width var(--t-morph) var(--ease-out), height var(--t-morph) var(--ease-out), border-radius var(--t-morph) var(--ease-out);
 }
-.digits i {
-  font-style: normal;
-  background: var(--panel2);
-  border: 1px solid var(--line);
-  border-radius: 6px;
-  padding: 2px 8px;
-}
-.digits .c {
-  color: var(--red);
-  padding: 0 1px;
+.qa-widget.is-open { width: var(--widget-w); height: var(--widget-h); border-radius: var(--radius-2xl); }
+.qa-widget :focus-visible { outline-color: #fff; }
+.qa-widget__open {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
   background: none;
   border: 0;
+  color: inherit;
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.3s;
 }
-.digits .s {
-  color: var(--red);
+.qa-widget__open:hover { transform: scale(1.1); }
+.qa-widget.is-open .qa-widget__open {
+  opacity: 0;
+  transform: scale(0.4) rotate(-45deg);
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.2s, transform 0.3s, visibility 0s 0.3s;
 }
-
-/* ========== 5. PAGE CONTENT ==========
-   The area that holds the banner and whichever page is open. */
-.page {
-  padding: 36px 40px 96px;
-  max-width: 1320px;
-}
-/* BANNER: the picture is set from JavaScript so the Super Admin can swap it */
-
-/* The event banner. The picture itself is set from JavaScript, so a Super Admin can change it. */
-.banner {
-  position: relative;
-  color: #fff;
-  border: 1px solid var(--line);
-  border-radius: 16px;
-  padding: 44px;
-  min-height: 360px;
+.qa-widget__body {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: var(--widget-w);
+  height: var(--widget-h);
   display: flex;
   flex-direction: column;
-  justify-content: flex-end;
-  background-size: cover;
-  background-position: center;
+  padding: var(--sp-16);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity var(--t-fast), visibility 0s var(--t-fast);
 }
-
-/* The row of pills at the top of the banner. */
-.banner .tl {
+.qa-widget.is-open .qa-widget__body { opacity: 1; visibility: visible; transition: opacity var(--t-base) 0.18s, visibility 0s; }
+.qa-widget__header {
   display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  align-items: center;
-  margin-bottom: auto;
-  padding-bottom: 36px;
-}
-.banner .tl .btn {
-  margin-left: auto;
-}
-
-/* The red "Official program banner" pill and the dark location chip. */
-.bpill {
-  background: var(--red);
-  color: #fff;
-  border-radius: 999px;
-  padding: 4px 14px;
-  font-weight: 700;
-}
-.bchip {
-  background: rgba(10, 10, 14, 0.7);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 999px;
-  padding: 4px 14px;
-  color: #e8e8ee;
-}
-
-/* The big event title and the track chips inside the banner. */
-.banner h1 {
-  font-size: clamp(2rem, 4.6vw, 3.4rem);
-  max-width: 18ch;
-  margin: 20px 0 12px;
-}
-.banner p {
-  max-width: 60ch;
-  color: #e6e6ee;
-}
-.banner .chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  align-items: center;
-  margin-top: 22px;
-}
-.banner .chips .tag {
-  background: rgba(10, 10, 14, 0.7);
-  color: #fff;
-  border-color: rgba(255, 255, 255, 0.2);
-}
-
-/* Two columns on the Live program page: sessions on the left, Q&A on the right. */
-.columns {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 400px;
-  gap: 44px;
-  align-items: start;
-  margin-top: 48px;
-}
-
-/* Section headings that have a small icon in front of them. */
-.sec {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 1.15rem;
-  text-transform: uppercase;
-}
-
-/* The filter buttons (All, Main Stage, Workshop Lab...) and the login/register switch. */
-.tabs {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin: 16px 0 26px;
-}
-.tab {
-  border: 0;
-  border-radius: 8px;
-  padding: 8px 14px;
-  background: none;
-  color: var(--soft);
-  cursor: pointer;
-  font:
-    500 0.85rem "JetBrains Mono",
-    monospace;
-  min-height: 40px;
-}
-.tab:hover {
-  background: var(--panel2);
-}
-.tab.on {
-  background: var(--red);
-  color: #fff;
-}
-
-/* ========== 6. CARDS ==========
-   .sess is a session card (also used for mentors, teams and notices). .panel is a plain box. */
-.sess,
-.panel {
-  background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: 14px;
-  padding: 26px 28px;
-  margin-bottom: 22px;
-}
-
-/* The session that is happening now gets a red outline and a faint red tint. */
-.sess.live {
-  border-color: var(--red);
-  background: color-mix(in srgb, var(--red) 7%, var(--panel));
-}
-
-/* Top row of a session card: type and time on the left, "Save my seat" on the right. */
-.sess-top {
-  display: flex;
-  gap: 12px;
   justify-content: space-between;
-  align-items: flex-start;
-}
-.meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
   align-items: center;
-  color: var(--soft);
+  margin-bottom: var(--sp-18);
+  padding-bottom: var(--sp-18);
+  border-bottom: 1px solid var(--veil-35);
 }
-.time {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 0.9rem;
-}
+.qa-widget__title { display: flex; align-items: center; gap: var(--sp-10); margin: 0; font-size: var(--fs-lg); text-transform: uppercase; color: var(--color-on-accent); }
+.qa-widget__meta { display: flex; flex-wrap: nowrap; align-items: center; gap: var(--sp-6); }
+.qa-widget__close { padding: var(--sp-6); background: none; border: 0; color: inherit; cursor: pointer; }
 
-/* The red "LIVE NOW" label. */
-.livepill {
-  background: var(--red);
-  color: #fff;
-  border-radius: 6px;
-  padding: 2px 8px;
-  font-weight: 700;
-  font-size: 0.72rem;
-}
-.sess h3 {
-  margin: 18px 0 8px;
-}
-.by {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-top: 16px;
-}
-
-/* The round speaker avatar with their initials. */
-.av {
-  width: 34px;
-  height: 34px;
-  border-radius: 50%;
-  border: 1px solid var(--red);
-  background: var(--panel2);
-  display: grid;
-  place-items: center;
-  font:
-    700 0.72rem "JetBrains Mono",
-    monospace;
-  color: var(--red);
-}
-
-/* The "Save my seat" button. .done turns it green once a seat is saved. */
-.rsvp {
+.qa-list { flex: 1; display: grid; gap: var(--sp-14); margin: 0 0 var(--sp-14); padding: 0; list-style: none; overflow-y: auto; color: var(--color-text); }
+.qa-item { padding: var(--sp-18) var(--sp-20); border: 1px solid var(--color-line); border-radius: var(--radius-lg); background: var(--color-panel-2); }
+.qa-item__who { display: flex; justify-content: space-between; gap: var(--sp-8); font: 500 var(--fs-label) var(--font-mono); color: var(--color-soft); }
+.qa-item__who b { color: var(--color-text); }
+.qa-item__text { margin: var(--sp-8) 0; font-size: var(--fs-btn); }
+.qa-item__footer { display: flex; justify-content: space-between; align-items: center; }
+.qa-item__pin { color: var(--color-amber); }
+.vote-btn {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  min-height: 42px;
-  padding: 0 14px;
-  border-radius: 8px;
-  border: 1px solid var(--line);
-  background: var(--panel2);
-  color: var(--soft);
-  font:
-    500 0.85rem "JetBrains Mono",
-    monospace;
-  cursor: pointer;
-  white-space: nowrap;
-}
-.rsvp:hover {
-  color: var(--text);
-  border-color: var(--soft);
-}
-.rsvp.done {
-  color: var(--ok);
-  border-color: var(--ok);
-}
-
-/* ========== 7. Q&A PANEL ==========
-   The header, the list of questions, the vote buttons and the question form. */
-.qa-h {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  border-bottom: 1px solid var(--line);
-  padding-bottom: 18px;
-  margin-bottom: 18px;
-}
-
-/* The list of questions, one box per question. */
-ul.qa {
-  list-style: none;
-  margin: 0 0 22px;
-  padding: 0;
-  display: grid;
-  gap: 14px;
-}
-ul.qa li p {
-  font-size: 0.95rem;
-}
-ul.qa li {
-  border: 1px solid var(--line);
-  background: var(--panel2);
-  border-radius: 10px;
-  padding: 18px 20px;
-}
-.qwho {
-  display: flex;
-  justify-content: space-between;
-  gap: 8px;
-  font:
-    500 0.78rem "JetBrains Mono",
-    monospace;
-  color: var(--soft);
-}
-.qwho b {
-  color: var(--text);
-}
-.qfoot {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-/* The thumbs-up vote button. It turns green once you have voted. */
-.vote {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  min-height: 34px;
-  padding: 0 12px;
-  border-radius: 8px;
-  border: 1px solid var(--line);
-  background: var(--bg);
-  color: var(--soft);
-  font:
-    500 0.85rem "JetBrains Mono",
-    monospace;
+  gap: var(--sp-6);
+  min-height: var(--control-h-sm);
+  padding: 0 var(--sp-12);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-line);
+  background: var(--color-panel-2);
+  color: var(--color-soft);
+  font: 500 var(--fs-ui) var(--font-mono);
   cursor: pointer;
 }
-.vote:disabled {
-  color: var(--ok);
-  border-color: var(--ok);
-  cursor: default;
-}
-
-/* ========== 8. FORMS AND MESSAGES ==========
-   Spacing for forms, plus error text and notice boxes. */
-form {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 14px;
-}
-.two {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 12px;
-}
-.two input {
-  width: 100%;
-}
-.send {
-  display: flex;
-  gap: 12px;
-}
-.send input {
-  flex: 1;
-  min-width: 0;
-}
-.send button {
+.vote-btn:disabled { color: var(--color-ok); border-color: var(--color-ok); cursor: default; }
+.qa-form__send { display: flex; gap: var(--sp-12); }
+.qa-form__send .input { flex: 1; min-width: 0; }
+.qa-form__submit {
   width: 46px;
-  border: 0;
-  border-radius: 8px;
-  background: var(--red);
-  color: #fff;
-  cursor: pointer;
   display: grid;
   place-items: center;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+  cursor: pointer;
 }
-label {
-  display: grid;
-  gap: 4px;
-  font-weight: 500;
-}
-.chk {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-input[type="checkbox"] {
-  width: 22px;
-  height: 22px;
-  min-height: 0;
-}
+.qa-widget .form-error { color: #fff; }
 
-/* Red error text and the purple notice box (e.g. "Banner updated"). */
-.err {
-  color: var(--red);
-  font-weight: 700;
-  margin: 0;
-  min-height: 1.2em;
+/* ========== 10. RESPONSIVE & MOTION ========== */
+@media (max-width: 900px) {
+  .page-header__timer-row { grid-template-columns: 1fr; gap: var(--sp-20); }
+  .page-header, .page, .broadcast, .banner { padding-left: var(--sp-18); padding-right: var(--sp-18); }
 }
-.note {
-  padding: 10px 14px;
-  border-radius: 8px;
-  border: 1px solid var(--violet);
-  background: var(--panel);
-}
-
-/* A narrow box used for the login page and the Super Admin console. */
-.narrow {
-  max-width: 520px;
-  display: grid;
-  gap: 18px;
-}
-.narrow > * {
-  margin: 0;
-}
-
-/* ========== 9. SMALL SCREENS AND ACCESSIBILITY ==========
-   Below 1000px the two columns stack; below 700px the spacing tightens for phones. */
-@media (max-width: 1000px) {
-  .columns {
-    grid-template-columns: 1fr;
-  }
-}
-@media (max-width: 700px) {
-  .app.pin .main {
-    margin-left: 68px;
-  }
-  .top,
-  .page {
-    padding-left: 18px;
-    padding-right: 18px;
-  }
-  .banner {
-    padding: 24px;
-  }
-}
-
-/* Switches off animation for people who asked their device for less motion. */
+@media (max-width: 700px) { :root { --rail: 56px; } }
+@media (max-width: 560px) { .event-form .form__row { grid-template-columns: 1fr; } }
 @media (prefers-reduced-motion: reduce) {
-  .sidebar,
-  .fade {
-    transition: none;
-  }
+  .sidebar, .sidebar__text, .theme-icon__glyph, .qa-widget, .qa-widget__open, .qa-widget__body, body, .app { transition: none !important; }
 }
