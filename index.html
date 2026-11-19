@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Hackathon portal</title>
+
+    <!-- Fonts: Archivo (headings), Inter (body), JetBrains Mono (labels). -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Archivo:wght@800&family=Inter:wght@400;500;700&family=JetBrains+Mono:wght@500;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <link rel="stylesheet" href="Style.css" />
+  </head>
+
+  <body>
+    <!-- Structure only. script.js fills every empty shell below by its id. -->
+
+    <!-- Hover sidebar: profile, event switcher, theme and log in/out. Filled by drawSidebar(). -->
+    <aside id="sidebar" aria-label="Profile and settings"></aside>
+
+    <div class="app" id="app">
+      <!-- Hills banner (picture and event title). Filled by drawBanner(). -->
+      <section class="banner" id="banner"></section>
+
+      <!-- Main menu. Filled by drawNav(). -->
+      <nav class="navwrap" id="topnav" aria-label="Main menu"></nav>
+
+      <!-- Decorative divider line. -->
+      <div class="rule" id="divider" aria-hidden="true"></div>
+
+      <!-- Broadcast message (can be closed). Filled by drawBcast(). -->
+      <div class="bcast mono" id="bcast"></div>
+
+      <div class="main" id="content">
+        <!-- Toolbar, countdown boxes and Time box. Filled by drawTop(). -->
+        <header class="top" id="top"></header>
+
+        <!-- Current page (live program, mentors, teams, notices, judging, admin, login). Filled by drawPage(). -->
+        <main class="page" id="page-main"><div id="page"></div></main>
+      </div>
+    </div>
+
+    <!-- Floating Mini Q&A bubble. Filled by drawQA(). -->
+    <div class="qa-fab" id="qaFloat"></div>
+
+    <script src="Script.js" defer></script>
+  </body>
+</html>
