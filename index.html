@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sign in or register</title>
+
+<!-- Styles: all the CSS lives in style/style.css -->
+<link rel="stylesheet" href="style/style.css">
+
+<!-- Apply the saved (or device) theme BEFORE the page paints, so dark mode
+     doesn't flash white first. The switch itself is handled in script.js. -->
+<script>
+  try{
+    document.documentElement.dataset.theme = localStorage.getItem('theme') ||
+      (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+  }catch(e){}
+</script>
+</head>
+
+<!-- ==========================================================================
+     LOGIN / REGISTRATION PAGE
+
+     Page structure
+     1. Overlay panel ... slides left/right to switch between "Sign in" and "New member"
+     2. Auth view ....... role picker + sign-in / registration form
+     3. PIN view ........ authenticator code (6 digits)
+     4. Done view ....... success screen after the PIN is verified
+
+     Only one view is visible at a time. JavaScript switches between them
+     using the "hidden" attribute.
+     ========================================================================== -->
+<body>
+
+<!-- LIGHT / DARK SWITCH (top right): click to slide between light and dark -->
+<button class="theme-toggle" id="theme-toggle" type="button" role="switch" aria-checked="false" aria-label="Dark mode">
+  <span class="theme-text" id="theme-text" aria-hidden="true">Light mode</span>
+  <span class="track" aria-hidden="true">
+    <svg class="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+    <svg class="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+    <span class="knob"></span>
+  </span>
+</button>
+
+<main class="panel" id="panel" data-mode="login">
+
+  <div class="body">
+
+    <!-- ====================================================================
+         2. AUTH VIEW
+         Shown first. Used for both signing in and registering.
+         ==================================================================== -->
+    <section id="view-auth">
+      <!-- Heading and subtitle change depending on the active tab -->
+      <h1 id="title">Welcome back</h1>
+      <p class="sub" id="subtitle">Choose your role, then sign in.</p>
+
+      <!-- PROGRESS (registration only): which of the 3 steps you are on -->
+      <ol class="steps reg" id="steps" hidden aria-label="Registration progress">
+        <li data-n="1"><b>1</b><span>About you</span></li>
+        <li data-n="2"><b>2</b><span>Your work</span></li>
+        <li data-n="3"><b>3</b><span>Finish</span></li>
+      </ol>
+
+      <!-- Social sign-in buttons (not connected yet: see script.js) -->
+      <div class="social" data-step="1" role="group" aria-label="Sign in with a social account">
+        <button class="soc" type="button" data-provider="Facebook" aria-label="Continue with Facebook">f</button>
+        <button class="soc" type="button" data-provider="Google" aria-label="Continue with Google">G</button>
+      </div>
+      <p class="or" id="or-text" data-step="1">or use your account</p>
+
+      <!-- novalidate: JavaScript does the validation so we control the messages -->
+      <form id="form" novalidate>
+
+        <!-- Form-level error (e.g. "Email or password is incorrect") -->
+        <div class="form-err" id="form-err" role="alert"></div>
+
+        <!-- ROLE PICKER (shown for both sign in and register) -->
+        <fieldset data-step="1">
+          <legend>I am a</legend>
+          <div class="roles">
+            <label class="role"><input type="radio" name="role" value="Attendee"><span>Attendee</span></label>
+            <label class="role"><input type="radio" name="role" value="Team"><span>Team</span></label>
+            <label class="role"><input type="radio" name="role" value="Mentor"><span>Mentor</span></label>
+            <label class="role"><input type="radio" name="role" value="Judge"><span>Judge</span></label>
+          </div>
+          <p class="err" id="e-role"></p>
+        </fieldset>
+
+        <!-- NOTE: elements with class "reg" are REGISTRATION-ONLY.
+             They start hidden and are shown when "New member" is selected. -->
+
+        <!-- PROFILE PHOTO (registration only) -->
+        <div class="field reg" data-step="1" hidden>
+          <p class="lbl" id="photo-label">Profile photo</p>
+          <div class="photo-row">
+            <div class="avatar" id="avatar" aria-hidden="true">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg>
+            </div>
+            <div>
+              <!-- Real file input is visually hidden; the label next to it acts as the button -->
+              <input class="sr" type="file" id="photo" accept="image/png,image/jpeg,image/webp" aria-labelledby="photo-label">
+              <label class="btn-outline" for="photo" id="photo-btn">Choose photo</label>
+              <button class="link" type="button" id="photo-remove" hidden>Remove</button>
+              <p class="hint">JPG, PNG or WebP, up to 2 MB.</p>
+            </div>
+          </div>
+          <p class="err" id="e-photo"></p>
+        </div>
+
+        <!-- Full name (registration only) -->
+        <div class="field reg" data-step="1" hidden>
+          <label class="l" for="fullname">Full Name</label>
+          <input class="t" id="fullname" autocomplete="name">
+          <p class="err" id="e-fullname"></p>
+        </div>
+
+        <!-- Email (sign in and register) -->
+        <div class="field" data-step="1">
+          <label class="l" for="email">Email address</label>
+          <input class="t" id="email" type="email" autocomplete="email" placeholder="name@company.com">
+          <p class="err" id="e-email"></p>
+        </div>
+
+        <!-- TEAM NAME (registration only, and only when the role is "Team").
+             Not a "reg" element: JavaScript shows or hides it when a role is picked. -->
+        <div class="field" id="team-field" data-step="2" hidden>
+          <label class="l" for="team">Team name (Optional or New Team)</label>
+          <input class="t" id="team" autocomplete="off" placeholder="e.g. Phoenix">
+          <p class="err" id="e-team"></p>
+        </div>
+
+        <!-- Job title + Organisation, side by side (registration only) -->
+        <div class="row reg" data-step="2" hidden>
+          <div class="field">
+            <label class="l" for="job">Job title</label>
+            <input class="t" id="job" autocomplete="organization-title" placeholder="Product designer">
+            <p class="err" id="e-job"></p>
+          </div>
+          <div class="field">
+            <label class="l" for="org">Organisation</label>
+            <input class="t" id="org" autocomplete="organization" placeholder="Your company or group">
+            <p class="err" id="e-org"></p>
+          </div>
+        </div>
+
+        <!-- Description (registration only), limited to 300 characters -->
+        <div class="field reg" data-step="2" hidden>
+          <label class="l" for="about">Bio & Background</label>
+          <textarea id="about" maxlength="300" placeholder="A short description of what you do and what you're working on"></textarea>
+          <p class="err" id="e-about"></p>
+        </div>
+
+        <!-- SKILLS & TECH STACK (registration only).
+             Type a skill and press Enter / Add, or tap a suggestion. -->
+        <div class="field reg" data-step="2" hidden>
+          <label class="l" for="skill-input">Skills &amp; tech stack</label>
+          <div class="skill-add">
+            <input class="t" id="skill-input" autocomplete="off" maxlength="30" placeholder="Type a skill, e.g. Python">
+            <button class="btn-outline" type="button" id="skill-add">Add</button>
+          </div>
+          <div class="chips picked" id="skill-list" aria-live="polite"></div>
+          <p class="hint">Tap a suggestion or type your own. Up to 15.</p>
+          <div class="chips suggest" id="skill-suggest"></div>
+          <input type="hidden" id="skills">
+          <p class="err" id="e-skills"></p>
+        </div>
+
+        <!-- SOCIAL LINKS (registration only, all optional) -->
+        <fieldset class="reg" data-step="3" hidden>
+          <legend>Social links (optional)</legend>
+          <div class="row">
+            <div class="field">
+              <label class="l" for="linkedin">LinkedIn</label>
+              <input class="t" id="linkedin" inputmode="url" autocomplete="off" placeholder="linkedin.com/in/yourname">
+              <p class="err" id="e-linkedin"></p>
+            </div>
+            <div class="field">
+              <label class="l" for="facebook">Facebook</label>
+              <input class="t" id="facebook" inputmode="url" autocomplete="off" placeholder="facebook.com/yourname">
+              <p class="err" id="e-facebook"></p>
+            </div>
+          </div>
+          <div class="row">
+            <div class="field">
+              <label class="l" for="github">GitHub</label>
+              <input class="t" id="github" inputmode="url" autocomplete="off" placeholder="github.com/yourname">
+              <p class="err" id="e-github"></p>
+            </div>
+            <div class="field">
+              <label class="l" for="website">Website / portfolio</label>
+              <input class="t" id="website" inputmode="url" autocomplete="off" placeholder="yourname.com">
+              <p class="err" id="e-website"></p>
+            </div>
+          </div>
+        </fieldset>
+
+        <!-- PASSWORD ROW: Password and Repeat password sit next to each other.
+             On the Sign in tab "Repeat password" is hidden, so Password fills the row. -->
+        <div class="row-pw" data-step="3">
+
+          <!-- Password (sign in and register).
+               JavaScript switches autocomplete between current-password and new-password. -->
+          <div class="field">
+            <label class="l" for="pw">Password</label>
+            <input class="t" id="pw" type="password" autocomplete="current-password">
+            <p class="err" id="e-pw"></p>
+          </div>
+
+          <!-- Repeat password (registration only) -->
+          <div class="field reg" hidden>
+            <label class="l" for="pw2">Repeat password</label>
+            <input class="t" id="pw2" type="password" autocomplete="new-password">
+            <p class="err" id="e-pw2"></p>
+          </div>
+        </div>
+
+        <!-- Shows or hides the password in both password fields -->
+        <label class="check" data-step="3"><input type="checkbox" id="show"> Show password</label>
+
+        <!-- Button text changes: "Sign in" or "Create account" -->
+        <!-- Sign in: just the Sign in button.
+             Create account: Back / Next on steps 1-2, Back / Create account on step 3. -->
+        <div class="step-nav">
+          <button class="btn-outline" type="button" id="prev" hidden>Back</button>
+          <button class="btn" type="button" id="next" hidden>Next</button>
+          <button class="btn" id="submit" type="submit">Sign in</button>
+        </div>
+
+        <!-- Shown on small screens only (the sliding panel is hidden there) -->
+        <p class="switch-mobile"><span id="switch-q">New here?</span> <button class="link" type="button" id="switch-btn">Create account</button></p>
+      </form>
+    </section>
+
+
+    <!-- ====================================================================
+         3. PIN VIEW
+         Shown after a successful sign in or registration.
+         The user types the 6-digit code from their authenticator app.
+         ==================================================================== -->
+    <section id="view-pin" hidden>
+      <h1>Enter your authenticator code</h1>
+
+      <!-- Confirmation message, filled in by JavaScript -->
+      <p class="notice" id="pin-notice"></p>
+      <p class="sub">Open your authenticator app and type the 6-digit code it shows.</p>
+
+      <!-- DEMO ONLY: delete this block once you have a real backend -->
+      <div class="demo">Demo mode: any real check must happen on your server. For now, use <strong>123456</strong>.</div>
+
+      <!-- Six single-digit boxes. The first one allows autofill of one-time codes. -->
+      <div class="pin" id="pin" role="group" aria-label="6-digit code">
+        <input inputmode="numeric" maxlength="1" autocomplete="one-time-code" aria-label="Digit 1">
+        <input inputmode="numeric" maxlength="1" aria-label="Digit 2">
+        <input inputmode="numeric" maxlength="1" aria-label="Digit 3">
+        <input inputmode="numeric" maxlength="1" aria-label="Digit 4">
+        <input inputmode="numeric" maxlength="1" aria-label="Digit 5">
+        <input inputmode="numeric" maxlength="1" aria-label="Digit 6">
+      </div>
+
+      <!-- PIN error message (e.g. "That code isn't right. 2 attempts left.") -->
+      <p class="err" id="e-pin" role="alert" style="margin-bottom:14px"></p>
+
+      <button class="btn" id="verify" type="button">Verify code</button>
+      <div class="center"><button class="link" id="back" type="button">Back</button></div>
+    </section>
+
+
+    <!-- ====================================================================
+         4. DONE VIEW
+         Success screen. Name, email, title, organisation and role are
+         filled in by JavaScript.
+         ==================================================================== -->
+    <section id="view-done" class="center" hidden>
+
+      <!-- Green tick icon -->
+      <div class="tick" aria-hidden="true">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
+      </div>
+
+      <h1 id="done-title">You're in</h1>
+      <p class="sub" id="done-sub"></p>
+
+      <!-- PROFILE CARD: name, job title and organisation.
+           JavaScript fills it in and hides it if there is nothing to show. -->
+      <div class="profile" id="profile" hidden>
+        <div class="phead">
+          <div class="avatar big" id="done-avatar" hidden></div>
+          <p class="pname" id="done-name"></p>
+        </div>
+        <p class="plabel">Professional title / Organisation</p>
+        <p class="ptitle" id="done-job"></p>
+        <p class="porg" id="done-org"></p>
+        <ul class="plinks" id="done-links"></ul>
+        <div class="chips picked" id="done-skills"></div>
+      </div>
+
+      <span class="badge" id="done-role"></span>
+
+      <div style="margin-top:24px"><button class="btn" id="signout" type="button">Sign out</button></div>
+    </section>
+
+  </div><!-- /.body -->
+
+  <!-- ======================================================================
+       OVERLAY PANEL (the coloured side)
+       Sits on the right while signing in and slides to the left when
+       registering. JavaScript shows one of the two messages (hidden attribute).
+       ====================================================================== -->
+  <aside class="overlay" id="overlay">
+    <div id="ov-login">
+      <h2>New Member!</h2>
+      <p>Enter your personal details and start your journey with us</p>
+      <button class="ghost" type="button" id="go-register">Sign up</button>
+    </div>
+    <div id="ov-register" hidden>
+      <h2>Welcome Back!</h2>
+      <p>To keep connected with us please login with your personal info</p>
+      <button class="ghost" type="button" id="go-login">Sign in</button>
+    </div>
+  </aside>
+</main>
+
+<!-- JavaScript: all the page logic lives in javascript/script.js.
+     It is loaded at the end of the body so the HTML above exists first. -->
+<script src="javascript/script.js"></script>
+</body>
+</html>
