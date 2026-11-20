@@ -195,7 +195,7 @@ function check(id){
   return !msg;
 }
 
-// Checks that one of the four roles is selected.
+// Checks that one of the available roles is selected.
 function checkRole(){
   const ok = !!$('input[name=role]:checked');
   $('#e-role').textContent = ok ? '' : 'Choose your role';
@@ -450,9 +450,10 @@ pins.forEach((inp, i) => {
    ========================================================================== */
 let verifying = false;   // stops the check running twice at the same time
 
+// Edited by NkosinathiM-ship: persist the selected role for the live-program app.
 async function startLiveProgramSession(){
   const email = user.email.trim().toLowerCase();
-  const role = user.role.toLowerCase();
+  const role = user.role.toLowerCase().replace(/\s+/g, '');
   const accountsKey = 'portal-accounts-v1';
   const sessionKey = 'portal-session-v1';
   const accounts = JSON.parse(localStorage.getItem(accountsKey) || '[]');
@@ -521,6 +522,7 @@ async function verify(){
     renderProfile();
     $('#done-role').textContent = user.role + (user.team ? ' · ' + user.team : '');
     show('done');
+    // Edited by NkosinathiM-ship: send a verified login to the live program.
     window.location.assign('live-program.html');
     return;
   }

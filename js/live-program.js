@@ -20,6 +20,7 @@
    1. CONFIG
    ========================================================================== */
 const CONFIG = {
+  // Edited by NkosinathiM-ship: keep the logo path relative to the assets folder.
   logoSrc: "assets/logo-white.png",
   storage: {
     events: "portal-events-v3", // Super Admin edits to events survive a refresh
@@ -416,7 +417,9 @@ const timeLabel = (s) => clockShort(s.start) + " - " + clockShort(s.end);
 const toLocalInput = (ms) => new Date(ms - new Date(ms).getTimezoneOffset() * 60000).toISOString().slice(0, 16); // datetime-local wants local time
 const fmtWhen = (ms) => new Date(ms).toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
 const can = (role, id) => ALLOWED[role].includes(id);
-const navItems = () => MENU.filter((m) => m.id !== "auth");
+// Edited by NkosinathiM-ship: build the menu from the signed-in role's permissions.
+const visibleMenu = () => MENU.filter((m) => ALLOWED[STATE.role].includes(m.id));
+const navItems = () => visibleMenu().filter((m) => m.id !== "auth");
 function showError(form, target, message) {
   target.textContent = message;
   form.classList.toggle(CLS.error, Boolean(message));
@@ -593,7 +596,7 @@ function drawSidebar() {
     </div>`;
 }
 
-// Show all six menu entries; only live and the authorized admin console are active routes.
+// Show the items allowed for this role; placeholders remain disabled until linked.
 function drawNav() {
   DOM.topNav.innerHTML = `<ul class="top-nav__list">${navItems()
     .map(
@@ -1164,10 +1167,11 @@ const ACTIONS = {
     STATE.authMode = v;
     drawPage();
   },
+  // Edited by NkosinathiM-ship: clear the session and return to the login entry.
   "auth-toggle": () => {
     if (STATE.loggedIn) {
       signOut();
-      drawAll();
+      window.location.assign("index.html");
     } else go("auth");
   },
   theme: () => {

@@ -232,6 +232,7 @@
   padding-top: var(--safe-top);
   padding-bottom: var(--safe-bottom);
 }
+/* Edited by NkosinathiM-ship: charcoal surfaces and crimson app palette. */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --color-bg: #0d0e12;
@@ -615,6 +616,7 @@ textarea.input { resize: vertical; line-height: var(--lh-control); }
   padding: var(--space-0) calc((var(--rail) - var(--logo-w)) / 2);
   border-bottom: var(--border-w) solid var(--white-a25);
 }
+/* Edited by NkosinathiM-ship: crimson accent on the ecosystem logo. */
 .sidebar__logo-img {
   display: block;
   width: var(--logo-w);
@@ -808,6 +810,7 @@ textarea.input { resize: vertical; line-height: var(--lh-control); }
   color: var(--color-banner-summary);
 }
 
+/* Edited by NkosinathiM-ship: role-aware active and placeholder navigation. */
 /* ---------- Top navigation ---------- */
 .top-nav__list {
   display: flex;
@@ -869,6 +872,7 @@ textarea.input { resize: vertical; line-height: var(--lh-control); }
   transform: translateX(-50%);
 }
 
+/* Edited by NkosinathiM-ship: burgundy broadcast callout styling. */
 /* ---------- Broadcast bar ---------- */
 .broadcast {
   display: flex;

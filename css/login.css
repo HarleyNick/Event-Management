@@ -56,6 +56,7 @@
   --radius:10px;
 }
 
+/* Edited by NkosinathiM-ship: charcoal and crimson login theme. */
 /* DARK MODE: same variables, darker values.
    Applied when <html data-theme="dark"> (set by the switch in the top right). */
 :root[data-theme="dark"]{
@@ -229,6 +230,7 @@ h1{
   text-align:center;
 }
 
+/* Edited by NkosinathiM-ship: red-accented white logo styling. */
 .brand-logo{
   display:block;
   width:128px;
