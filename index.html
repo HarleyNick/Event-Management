@@ -2,52 +2,55 @@
 <html lang="en" data-theme="dark">
   <head>
     <meta charset="UTF-8" />
-    <!-- viewport-fit=cover lets the page use the full phone screen; the CSS keeps content clear of notches. -->
+    <!-- viewport-fit=cover lets the page use the full phone screen; styles.css keeps content clear of notches. -->
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>Hackathon portal</title>
 
-    <!-- Fonts from Google: Archivo (headings), Inter (body text), JetBrains Mono (small labels). -->
+    <!-- Fonts: Archivo (headings), Inter (body text), JetBrains Mono (small labels). -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Archivo:wght@800&family=Inter:wght@400;500;700&family=JetBrains+Mono:wght@500;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Archivo:wght@700;800&family=Inter:wght@400;500;700&family=JetBrains+Mono:wght@400;500;700&display=swap"
       rel="stylesheet"
     />
 
-    <!-- All the colours, spacing and layout live in styles.css. -->
+    <!-- All visual design lives in styles.css -->
     <link rel="stylesheet" href="styles.css" />
   </head>
 
-  <body>
-    <!-- Page structure follows the wireframe, top to bottom. script.js fills each box by its id. -->
-    <!-- Hover sidebar: profile, event switcher, theme and log in/out. Filled by drawSidebar(). -->
-    <aside id="sidebar" aria-label="Profile and settings"></aside>
+  <body id="body">
+    <!-- STRUCTURE ONLY. script.js fills every empty container below by its id. -->
+
+    <!-- Hover sidebar: logo, profile, event switcher, theme toggle, log in/out -->
+    <aside class="sidebar" id="sidebar" aria-label="Profile and settings"></aside>
 
     <div class="app" id="app">
-      <!-- 1. Hills banner (picture and event title). Filled by drawBanner(). -->
-      <section class="banner" id="banner"></section>
+      <!-- 1. Event banner (picture, title, location, date) -->
+      <header class="banner" id="banner"></header>
 
-      <!-- 2. Navigation strip + green navigation bar. Filled by drawNav(). -->
-      <nav class="navwrap" id="topnav" aria-label="Main menu"></nav>
+      <!-- 2. Main navigation: one tab per page the signed-in role may open -->
+      <nav class="top-nav" id="topNav" aria-label="Main menu"></nav>
 
-      <!-- 3. Purple divider line. -->
-      <div class="rule" aria-hidden="true"></div>
+      <!-- 3. Divider line -->
+      <div class="divider" aria-hidden="true"></div>
 
-      <!-- Broadcast message (can be closed). Filled by drawBcast(). -->
-      <div class="bcast mono" id="bcast"></div>
+      <!-- 4. Broadcast message (can be closed) -->
+      <div class="broadcast text-mono" id="broadcast" role="status"></div>
 
-      <div class="main">
-        <!-- 4. Toolbar, the four countdown boxes and the Time box. Filled by drawTop(). -->
-        <header class="top" id="top"></header>
+      <div class="app__main">
+        <!-- 5. Page title, submissions badge and the code-freeze countdown -->
+        <header class="page-header" id="pageHeader"></header>
 
-        <!-- 5. Heading blocks on the left, mini Q&A panel on the right. Filled by drawPage(). -->
-        <main class="page"><div id="page"></div></main>
+        <!-- 6. The page that is currently open (live program, mentors, teams, admin...) -->
+        <main class="page" id="pageMain">
+          <div id="pageContent"></div>
+        </main>
       </div>
     </div>
 
-    <!-- Floating Mini Q&A bubble. Filled by drawQA(). -->
-    <div class="qa-fab" id="qaFloat"></div>
+    <!-- 7. Floating Mini Q&A: a round bubble that opens into a panel -->
+    <aside class="qa-float" id="qaFloat" aria-label="Mini Q&amp;A"></aside>
 
-    <script src="script.js"></script>
+    <script src="script.js" defer></script>
   </body>
 </html>
