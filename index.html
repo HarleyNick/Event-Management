@@ -2,11 +2,11 @@
 <html lang="en" data-theme="dark">
   <head>
     <meta charset="UTF-8" />
-    <!-- viewport-fit=cover lets the page use the full phone screen; styles.css keeps content clear of notches. -->
+    <!-- Use the phone screen properly, including the areas near phone notches. -->
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>Hackathon portal</title>
 
-    <!-- Fonts: Archivo (headings), Inter (body text), JetBrains Mono (small labels). -->
+    <!-- These links download the fonts used on the page. -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -14,43 +14,50 @@
       rel="stylesheet"
     />
 
-    <!-- All visual design lives in styles.css -->
+    <!-- This is the page's main stylesheet. -->
     <link rel="stylesheet" href="styles.css" />
   </head>
 
   <body id="body">
-    <!-- STRUCTURE ONLY. script.js fills every empty container below by its id. -->
+    <!-- === APPLICATION SHELL === -->
+    <!-- Most of the page is filled by script.js. -->
 
-    <!-- Hover sidebar: logo, profile, event switcher, theme toggle, log in/out -->
+    <!-- JS: script.js puts the sidebar here. Do not remove the id or aria-label. -->
     <aside class="sidebar" id="sidebar" aria-label="Profile and settings"></aside>
 
+    <!-- JS: this id keeps the main app together. -->
     <div class="app" id="app">
-      <!-- 1. Event banner (picture, title, location, date) -->
+      <!-- === EVENT BANNER === -->
+      <!-- JS: the banner is filled and moved here by script.js. -->
       <header class="banner" id="banner"></header>
 
-      <!-- 2. Main navigation: one tab per page the signed-in role may open -->
+      <!-- === MAIN NAVIGATION === -->
+      <!-- JS: script.js adds the menu buttons here. Do not remove the id or aria-label. -->
       <nav class="top-nav" id="topNav" aria-label="Main menu"></nav>
 
-      <!-- 3. Divider line -->
+      <!-- This line is only decoration. -->
       <div class="divider" aria-hidden="true"></div>
 
-      <!-- 4. Broadcast message (can be closed) -->
+      <!-- JS/A11Y: script.js updates this status message. -->
       <div class="broadcast text-mono" id="broadcast" role="status"></div>
 
       <div class="app__main">
-        <!-- 5. Page title, submissions badge and the code-freeze countdown -->
+        <!-- === PAGE HEADER === -->
+        <!-- JS: script.js puts the title and countdown here. -->
         <header class="page-header" id="pageHeader"></header>
 
-        <!-- 6. The page that is currently open (live program, mentors, teams, admin...) -->
+        <!-- === ACTIVE PAGE CONTENT === -->
+        <!-- JS: script.js changes the content in this main page area. -->
         <main class="page" id="pageMain">
           <div id="pageContent"></div>
-        </main>
-      </div>
-    </div>
+        </main> <!-- /.page -->
+      </div> <!-- /.app__main -->
+    </div> <!-- /.app -->
 
-    <!-- 7. Floating Mini Q&A: a round bubble that opens into a panel -->
-    <aside class="qa-float" id="qaFloat" aria-label="Mini Q&amp;A"></aside>
+    <!-- === FLOATING MINI Q&A === -->
+    <!-- JS/A11Y: script.js controls this Q&A panel. Do not remove the id or aria-label. -->
+    <aside class="qa-float" id="qaFloat" aria-label="Mini Q&amp;A"></aside> <!-- /.qa-float -->
 
     <script src="script.js" defer></script>
-  </body>
-</html>
+  </body> <!-- /body -->
+</html> <!-- /html -->

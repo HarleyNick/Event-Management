@@ -1,25 +1,19 @@
 "use strict";
-/* ==========================================================================
-   script.js : behaviour only. No colours, no sizes, no inline styles.
-   --------------------------------------------------------------------------
-   Read it top to bottom:
-     1. CONFIG    fixed settings (storage names, timings, demo values)
-     2. CLASSES   the state-class names that styles.css defines (is-*, has-*)
-     3. DATA      icons, roles, menus, events, sessions, mentors, teams, notices
-     4. STATE     the one object that remembers everything that can change
-     5. DOM       every id and class hook from index.html, in one registry
-     6. HELPERS   small pure functions
-     7. STORAGE + ACCOUNTS (demo, runs in the browser)
-     8. RENDERERS functions that fill each part of the screen
-     9. MOTION    banner pin, countdown freeze, pixel dissolve
-    10. ACTIONS   what each click / change / submit does
-    11. init()    wires every listener once and starts the app
+/* This file controls what the page does.
+   1. Settings
+   2. Style state names
+   3. Page data
+   4. Current app state
+   5. HTML parts
+   6. Small helper functions
+   7. Saving data and demo accounts
+   8. Functions that draw the page
+   9. Moving effects
+   10. Button and form actions
+   11. Start the app
 
-   RULES THIS FILE FOLLOWS
-     - Looks are changed only by adding / removing state classes, or by setting
-       CSS variables with style.setProperty(). Never element.style.<property> = ...
-     - Colours and sizes are read from the CSS tokens (see readToken), never repeated here.
-   ========================================================================== */
+   This file should not contain colours or sizes.
+   It changes looks by using classes or CSS variables. */
 
 
 /* ==========================================================================
@@ -34,7 +28,7 @@ const CONFIG = {
     session: "portal-session-v1",
   },
   demoPassword: "demo1234",
-  // DEMO ONLY: Super Admin sign-up needs this code. LATER: organizers are created by the server, never by a code in the page.
+  // This is only a demo code for making a Super Admin account.
   adminCode: "LIMPOPO-ADMIN",
   tickMs: 1000,
   freeze: {
@@ -85,7 +79,7 @@ const CLS = {
 /* ==========================================================================
    3. DATA
    ========================================================================== */
-// Small line drawings, so the menu works with icons alone.
+// Small drawings used as menu icons.
 const ICONS = {
   live: '<circle cx="12" cy="12" r="2"/><path d="M16.2 7.8a6 6 0 0 1 0 8.4M7.8 16.2a6 6 0 0 1 0-8.4M19 5a10 10 0 0 1 0 14M5 19a10 10 0 0 1 0-14"/>',
   mentors: '<circle cx="12" cy="12" r="10"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3M12 17h.01"/>',
@@ -121,7 +115,7 @@ const ROLES = {
   judge: "Judge",
   superadmin: "Super Admin",
 };
-// Every menu item, in sidebar order.
+// The menu items.
 const MENU = [
   { id: "live", label: "Live program & keynotes", hint: "Talks, workshops and questions" },
   { id: "mentors", label: "Mentor 1-on-1 hub", hint: "Get help from an expert" },
@@ -132,7 +126,7 @@ const MENU = [
   { id: "auth", label: "Log in & registration", hint: "Sign in or create an account" },
 ];
 const SIGNUP_ROLES = ["attendee", "mentor", "team", "judge", "superadmin"]; // roles a person can pick when registering
-// ROLE-BASED ACCESS CONTROL: the menus each role may open. Everyone gets "auth".
+// This shows which menus each account role can open.
 const ALLOWED = {
   guest: ["live", "auth"],
   attendee: ["live", "auth"],
@@ -143,14 +137,14 @@ const ALLOWED = {
 };
 const TYPES = ["All", "Main Stage", "Workshop Lab", "Mentor Pit", "Lightning Talks"];
 
-// Placeholder banner picture (dark, crimson-led) until a real photo is added.
+// A sample banner picture until a real photo is added.
 const placeholderBanner = () =>
   "data:image/svg+xml," +
   encodeURIComponent(
     '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 420" preserveAspectRatio="xMidYMax slice"><defs><linearGradient id="s" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3a0a1c"/><stop offset="1" stop-color="#14153a"/></linearGradient></defs><rect width="1600" height="420" fill="url(#s)"/><g fill="#fff" fill-opacity=".07"><ellipse cx="620" cy="40" rx="110" ry="34"/><ellipse cx="540" cy="52" rx="70" ry="26"/><ellipse cx="1330" cy="50" rx="80" ry="26"/><ellipse cx="300" cy="70" rx="60" ry="20"/></g><path d="M0 420V330C200 250 380 250 560 330S900 300 1020 250 1300 300 1600 330V420Z" fill="#5a1233"/><path d="M0 420V360C150 280 330 290 470 350S720 380 820 340 1200 250 1400 310 1560 340 1600 350V420Z" fill="#2a0d24"/></svg>',
   );
 const inHours = (h) => new Date(Date.now() + h * 3600000).toISOString();
-// "image" = banner URL, "dueAt" = countdown target. The Super Admin can change both.
+// The admin can change the banner picture and countdown time.
 const DEFAULT_EVENTS = [
   {
     id: "limpopo",
@@ -194,10 +188,9 @@ const DEFAULT_EVENTS = [
   },
 ];
 
-// Every session has a start and an end time (in milliseconds). It shows "Live now" between the two and
-// disappears from the page once its end time has passed.
-// DEMO: the times are set relative to when the page opens so you can watch a session end (the keynote
-// ends 3 minutes after load). For real events use fixed times, e.g. new Date("2026-11-20T10:00").getTime().
+// Sessions have a start and end time.
+// A session says "Live now" while it is running and leaves the page after it ends.
+// These demo times start relative to page load, so the first keynote ends after a few minutes.
 const inMin = (m) => Date.now() + m * 60000;
 const DEFAULT_SESSIONS = [
   {
@@ -271,7 +264,7 @@ const NOTICES = [
   ["Lunch is at 1 PM", "Find the food tables near the main hall."],
   ["Repository rule", "Your GitHub repo must be public and include a LICENSE file."],
 ];
-// Ready-made accounts so you can try each role (password: CONFIG.demoPassword).
+// Demo accounts for trying the different roles.
 const DEMO_ACCOUNTS = [
   { email: "attendee@demo.test", name: "Ayanda", role: "attendee" },
   { email: "mentor@demo.test", name: "Priya", role: "mentor" },
@@ -337,15 +330,15 @@ const STATE = {
       text: "What is the benchmark overhead for runtime safety filtering when generating streaming code tokens at 80 tokens/sec?",
     },
   ],
-  // Runtime values (not saved)
-  sessionSignature: "", // what is on screen, so the page only redraws when a session starts or ends
+  // Temporary values used while the page is open.
+  sessionSignature: "", // Used to know when the session list changed.
   wasFrozen: null,
   freezeBusy: false,
   sessionsExiting: false,
   bannerRange: 1,
   bannerFrame: 0,
-  bannerShrink: 0.2, // read from --banner-shrink in init()
-  pixelPalette: [], // read from the --pixel-* tokens in init()
+  bannerShrink: 0.2, // Read from CSS when the app starts.
+  pixelPalette: [], // Colours used for the pixel effect.
 };
 
 
@@ -354,7 +347,7 @@ const STATE = {
    ========================================================================== */
 const byId = (id) => document.getElementById(id);
 const DOM = {
-  // ---- Static skeleton (ids in index.html) ----
+  // Parts that stay in index.html.
   doc: document,
   win: window,
   root: document.documentElement,
@@ -369,7 +362,7 @@ const DOM = {
   pageContent: byId("pageContent"),
   qaFloat: byId("qaFloat"),
 
-  // ---- Elements drawn by the renderers below. They are replaced on every redraw, so they are looked up on demand. ----
+  // Parts added again by the page drawing functions.
   get countdownRow() { return byId("countdownRow"); },
   get countdown() { return byId("countdown"); },
   get submissionBadge() { return byId("submissionBadge"); },
@@ -390,7 +383,7 @@ const DOM = {
   get bannerImageInput() { return byId("bannerImageInput"); },
   get broadcastNoteInput() { return byId("broadcastNoteInput"); },
 
-  // ---- Class hooks used for lookups ----
+  // CSS class names used to find parts.
   query: {
     qaClose: () => document.querySelector(".qa__close"),
     sessionCard: (id) => document.querySelector(`.session[data-session-id="${id}"]`),
@@ -406,7 +399,7 @@ const DOM = {
 const currentEvent = () => STATE.events.find((e) => e.id === STATE.eventId);
 const svg = (name, size = 22) =>
   `<svg viewBox="0 0 24 24" width="${size}" height="${size}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[name]}</svg>`;
-// Stops typed text running as code.
+// Stops text from being read as HTML code.
 const esc = (t) =>
   String(t).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
 const withClass = (condition, className) => (condition ? " " + className : "");
@@ -422,13 +415,13 @@ const toLocalInput = (ms) => new Date(ms - new Date(ms).getTimezoneOffset() * 60
 const fmtWhen = (ms) => new Date(ms).toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
 const visibleMenu = () => MENU.filter((m) => ALLOWED[STATE.role].includes(m.id));
 const can = (role, id) => ALLOWED[role].includes(id);
-// The top bar holds every tab except "Log in & registration" (that lives in the sidebar).
+// The top menu shows all tabs except "Log in & registration".
 const navItems = () => visibleMenu().filter((m) => m.id !== "auth");
 function showError(form, target, message) {
   target.textContent = message;
   form.classList.toggle(CLS.error, Boolean(message));
 }
-// "Nov 10 - Nov 12, 2026", or just "Nov 10, 2026" when it starts and ends on the same day.
+// Shows a date range, or one date when the start and end are the same.
 function dateRange(a, b) {
   const md = { month: "short", day: "numeric" },
     f = (d, o) => d.toLocaleDateString("en-US", o);
@@ -588,6 +581,7 @@ async function handleAuth(form) {
 /* ==========================================================================
    8. RENDERERS: each function fills one part of the screen
    ========================================================================== */
+// Drawing rule: keep data-action and data-change names the same as the names used in onClick and onChange.
 function drawSidebar() {
   const name = STATE.loggedIn ? STATE.user.name : "Guest";
   DOM.sidebar.innerHTML = `<div class="sidebar__logo"><img class="sidebar__logo-img" src="${CONFIG.logoSrc}" alt="Limpopo Dev Ecosystem"></div>
@@ -599,7 +593,7 @@ function drawSidebar() {
     </div>`;
 }
 
-// One tab for every menu item this role may open.
+// Put one menu button on the page for each item the role can open.
 function drawNav() {
   DOM.topNav.innerHTML = `<ul class="top-nav__list">${navItems()
     .map(
@@ -641,7 +635,7 @@ function drawBroadcast() {
   DOM.broadcast.innerHTML = `<i class="broadcast__dot"></i><b>Broadcast:</b>${svg("alert", 16)}<span class="broadcast__message" id="broadcastMessage"></span><button class="broadcast__close" data-action="broadcast-close" aria-label="Close this message">${svg("x", 16)}</button>`;
 }
 
-// One session card. The "Save my seat" button needs a login.
+// Create one session card.
 function sessionCard(s) {
   const reserved = STATE.reserved.includes(s.id);
   return `<article class="session" data-session-id="${s.id}"><h2 class="session__title">${esc(s.title)}</h2>
@@ -649,7 +643,7 @@ function sessionCard(s) {
     <p class="session__about u-text-soft">${esc(s.about || "")}</p>${s.who ? `<p class="session__speaker text-mono">${esc(s.who).replace(", ", " \u00B7 ")}</p>` : ""}
     ${s.rsvp === false ? "" : `<button class="rsvp-button${withClass(reserved, CLS.done)}" aria-pressed="${reserved}" data-action="reserve" data-value="${s.id}">${svg("cal", 16)} ${reserved ? "Seat saved" : "Save my seat"}</button>`}</article>`;
 }
-// Q&A list: pinned questions first, then the most votes.
+// Show pinned questions first, then show questions with the most votes.
 function qaListHtml() {
   return [...STATE.questions]
     .sort((a, b) => Number(b.pinned) - Number(a.pinned) || b.votes - a.votes)
@@ -667,7 +661,7 @@ const liveListHtml = () => {
   return list.length ? list.map(sessionCard).join("") : '<p class="empty-state u-text-soft">No sessions left in this view.</p>';
 };
 
-// SUPER ADMIN: the form that adds (and schedules) the next upcoming event.
+// The Super Admin form for creating an event.
 function eventPanelHtml() {
   const mine = STATE.events.filter((x) => x.custom);
   return `<section class="panel panel--narrow admin-grid__item admin-grid__item--events"><h3>Create and publish the next event</h3>
@@ -688,7 +682,7 @@ function eventPanelHtml() {
     ${mine.length ? `<div><p class="text-label u-text-soft">Events you added</p>${mine.map((x) => `<div class="admin-list__item admin-list__item--event"><span><b>${esc(x.short)}</b> <span class="u-text-soft">${esc(x.date)}</span></span><button class="btn" type="button" data-action="remove-event" data-value="${x.id}">Remove</button></div>`).join("")}</div>` : ""}</section>`;
 }
 
-// SUPER ADMIN: add, edit and delete keynotes. They show up in Live program & keynotes straight away.
+// The Super Admin can add, edit, or delete keynotes.
 function keynotePanelHtml() {
   const e = currentEvent(),
     now = Date.now(),
@@ -724,7 +718,7 @@ function keynotePanelHtml() {
 
 const cardGrid = (cards, spaced) => `<div class="card-grid${withClass(spaced, "card-grid--spaced")}">${cards}</div>`;
 
-// Each page is a function that returns its HTML.
+// This list chooses which page HTML to show.
 const PAGES = {
   live: () => `<div class="live-program"><section>
     <div class="cluster cluster--center" role="group" aria-label="Filter sessions by topic">${currentEvent().tracks.map((t) => `<button type="button" class="pill pill--button${withClass(STATE.topic === t, CLS.active)}" aria-pressed="${STATE.topic === t}" data-action="topic" data-value="${esc(t)}">${esc(t)}</button>`).join("")}</div>
@@ -822,7 +816,7 @@ function drawAll() {
   drawPage();
 }
 
-// FLOATING Q&A: built once so what someone is typing survives page changes.
+// Make the floating Q&A once, so typed text stays on the page.
 function drawQA() {
   DOM.qaFloat.innerHTML = `<button class="qa-float__toggle" id="qaToggle" data-action="qa-open" aria-label="Open Mini Q&amp;A" aria-expanded="false" aria-controls="qaPanel">${svg("spark", 26)}</button>
     <section class="qa-float__panel" id="qaPanel" aria-label="Mini Q&amp;A"><div class="qa__header"><h2 class="qa__title">${svg("spark", 20)}<span>Mini Q&amp;A</span></h2>
@@ -846,10 +840,8 @@ function setQA(open) {
    9. MOTION: banner pin, countdown freeze, pixel dissolve
    ========================================================================== */
 
-/* ---- PINNED BANNER ----
-   The banner is sticky. It scrolls up until the top 20% is gone (--banner-shrink), then stays at the top. While that
-   happens, the scroll position (0 to 1) shrinks the banner and spreads a dark fill in from both sides.
-   Only CSS variables change here, so it stays smooth. */
+/* Banner that stays at the top.
+   It moves up while scrolling, then stops at the top. */
 function bannerMetrics() {
   if (DOM.banner.classList.contains(CLS.hidden)) return;
   const height = DOM.banner.offsetHeight;
@@ -870,10 +862,8 @@ function onScroll() {
   if (!STATE.bannerFrame) STATE.bannerFrame = requestAnimationFrame(bannerScroll);
 }
 
-/* ---- COUNTDOWN AND CODE FREEZE LOCKDOWN ----
-   Runs every second and only touches the clock, so typing elsewhere is never interrupted.
-   The last 10 seconds pulse a crimson warning glow; at zero the cards glitch and lock, the caption becomes
-   FROZEN // LOCKED, the "Submissions open" badge flips to "Submissions frozen", and then the whole row dissolves away. */
+/* Countdown and code freeze.
+   It updates once every second. At zero, the countdown gets a freeze effect and then disappears. */
 function scrambleTo(el, text, ms) {
   const t0 = performance.now(),
     chars = CONFIG.scrambleChars;
@@ -887,11 +877,11 @@ function scrambleTo(el, text, ms) {
 function badgeHtml(frozen, open) {
   return frozen ? `${svg("lock", 12)} Submissions frozen` : `${svg(open ? "unlock" : "lock", 12)} ${open ? "Submissions open" : "Submissions closed"}`;
 }
-// Folds an element shut (height and padding ease to zero) so what is below it slides up.
+// Slowly make an item shorter until it closes.
 function collapse(el) {
   el.style.setProperty("--collapse-height", el.offsetHeight + "px");
   el.classList.add(CLS.collapsing);
-  void el.offsetHeight; // force a reflow so the transition starts from the measured height
+  void el.offsetHeight; // Make the browser notice the starting size.
   el.classList.add(CLS.collapsed);
   return wait(CONFIG.collapseMs);
 }
@@ -929,7 +919,7 @@ function paintFreeze(left, animate) {
     row.classList.remove(CLS.hidden, CLS.dissolving, CLS.collapsing, CLS.collapsed);
     row.style.removeProperty("--collapse-height");
   } else if (animate) {
-    // glitch, a short hold on FROZEN // LOCKED, then the whole countdown row dissolves and folds away
+    // Show the glitch, pause, then hide the countdown.
     STATE.freezeBusy = true;
     row.classList.add(CLS.glitching);
     setTimeout(() => row.classList.remove(CLS.glitching), CONFIG.freeze.glitchMs);
@@ -942,7 +932,7 @@ function paintFreeze(left, animate) {
       if (target) show(target, false);
       STATE.freezeBusy = false;
     });
-  } else if (!STATE.freezeBusy) show(row, false); // already frozen (page opened after the freeze): no countdown to show
+  } else if (!STATE.freezeBusy) show(row, false); // The countdown is already frozen.
 }
 function tick() {
   const e = currentEvent(),
@@ -969,10 +959,8 @@ function tick() {
     .join("");
 }
 
-/* ---- PIXEL DISSOLVE ----
-   When a session ends, its time slot and then the whole card break into small coloured blocks that wink out at
-   random. The empty space then folds shut so the remaining sessions slide up. Sessions that were already over when
-   the page opened are simply not listed (no animation). */
+/* Pixel disappear effect.
+   When a session ends, coloured blocks cover it and the card closes. */
 function pixelDissolve(el, { duration, cell }) {
   return new Promise((done) => {
     const w = el.offsetWidth,
@@ -1293,6 +1281,7 @@ const FORMS = {
 };
 
 function onClick(e) {
+  // Send clicked buttons to the right action function.
   const button = e.target.closest("[data-action]");
   const action = button && ACTIONS[button.dataset.action];
   if (action) action(button.dataset.value, button);

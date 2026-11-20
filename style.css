@@ -1,19 +1,13 @@
 /* ==========================================================================
-   styles.css : the whole visual layer. No logic, no markup.
-   --------------------------------------------------------------------------
-   HOW THIS FILE IS ORGANISED
-     1. DESIGN TOKENS   every colour, font, size, spacing, radius, shadow,
-                        z-index and timing lives in :root as a --variable
-     2. BASE            resets and element defaults (body, headings, svg)
-     3. UTILITIES       tiny single-purpose helpers (.u-*)  + STATE classes (.is-*, .has-*)
-     4. COMPONENTS      one block per piece of UI, named with BEM:
-                          .block   .block__element   .block--modifier
-     5. ANIMATIONS      keyframes and the motion states that use them
-     6. RESPONSIVE      breakpoints and reduced-motion
+   This file controls how the page looks.
 
-   BREAKPOINTS (media queries cannot read variables, so they are listed here)
-     420px  small phones       560px  phones        700px  rail shrinks
-     782px  countdown stacks   820px  nav scrolls   900px  tablet
+   Contents:
+   1. Design values
+   2. Basic page styles
+   3. Helper and state styles
+   4. Buttons, boxes, and page sections
+   5. Animations
+   6. Screen size changes
    ========================================================================== */
 
 
@@ -265,6 +259,7 @@
   --color-countdown-card: #0f1218;
 }
 @media (max-width: 700px) {
+  /* On small screens, make the side bar a bit narrower. */
   :root { --rail: 56px; }
 }
 
@@ -547,6 +542,7 @@ textarea.input { resize: vertical; line-height: var(--lh-control); }
 .tab.is-active { background: var(--color-accent); color: var(--color-on-accent); }
 
 /* ---------- Layout shell ---------- */
+/* The side bar takes a fixed space, and the rest of the page uses the remaining width. */
 .app {
   width: 100%;
   max-width: none;
@@ -565,6 +561,7 @@ textarea.input { resize: vertical; line-height: var(--lh-control); }
 .divider { height: var(--border-w-thick); background: var(--color-burgundy); }
 
 /* ---------- Sidebar ---------- */
+/* This stays above page content but below the floating Q&A box. */
 .sidebar {
   position: fixed;
   z-index: var(--z-sidebar);
@@ -721,6 +718,7 @@ textarea.input { resize: vertical; line-height: var(--lh-control); }
 :root:not([data-theme="dark"]) .sidebar__switch-text--to-light { display: none; }
 
 /* ---------- Banner (sticky; shrinks and gains a side fill as you scroll) ---------- */
+/* The banner sits in front of the page but behind the menu areas. */
 .banner {
   position: sticky;
   top: calc(var(--banner-h) * var(--banner-shrink) * -1);
@@ -1042,6 +1040,7 @@ textarea.input { resize: vertical; line-height: var(--lh-control); }
 .admin-list__actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-6); }
 
 /* ---------- Floating Mini Q&A (a round bubble that morphs into the panel) ---------- */
+/* This needs to stay on top so the opened Q&A box and close button are usable. */
 .qa-float {
   position: fixed;
   z-index: var(--z-qa);
@@ -1281,7 +1280,7 @@ body,
    6. RESPONSIVE AND REDUCED MOTION
    ========================================================================== */
 @media (min-width: 821px) {
-  /* All nav tabs share the bar evenly; long labels wrap to two lines */
+  /* On wide screens, the menu uses equal spaces instead of scrolling sideways. */
   .top-nav__list { padding: var(--space-0); gap: var(--space-0); overflow-x: visible; }
   .top-nav__item { flex: 1 1 0; min-width: 0; display: flex; }
   .top-nav__link {
@@ -1298,6 +1297,7 @@ body,
   .top-nav__label { font-size: var(--fs-82); }
 }
 @media (max-width: 900px) {
+  /* On tablets, put the admin boxes in one column and reduce the side space. */
   .admin-grid { grid-template-columns: minmax(0, 1fr); }
   .admin-grid__item--settings,
   .admin-grid__item--keynotes,
@@ -1308,18 +1308,22 @@ body,
   }
 }
 @media (max-width: 782px) {
+  /* Put the countdown boxes below each other on small screens. */
   .countdown { grid-template-columns: 1fr; gap: var(--space-8); }
 }
 @media (max-width: 560px) {
+  /* Put the event form fields below each other so date controls are easier to use. */
   .form--event .form__split { grid-template-columns: 1fr; }
 }
 @media (max-width: 420px) {
+  /* Make the countdown smaller on very small phones. */
   .countdown, .countdown__units { gap: var(--space-6); }
   .countdown__unit, .countdown__target { min-height: var(--countdown-card-h-sm); padding: var(--space-8) var(--space-4); }
   .countdown__value { font-size: var(--fs-120); }
   .countdown__target-time { font-size: var(--fs-125); }
 }
 @media (prefers-reduced-motion: reduce) {
+  /* If the user asks for less motion, turn off these moving effects. */
   .sidebar, .sidebar__text, .theme-icon__glyph, .qa-float, .qa-float__toggle, .qa-float__panel, body, .app { transition: none !important; }
   .sidebar__logo-img, .banner, .banner::before, .banner::after, .banner__inner { transition: none; }
   .countdown.is-warning .countdown__unit,
