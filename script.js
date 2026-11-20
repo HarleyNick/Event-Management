@@ -20,7 +20,7 @@
    1. CONFIG
    ========================================================================== */
 const CONFIG = {
-  logoSrc: "logo-white.png",
+  logoSrc: "../logo-white.png",
   storage: {
     events: "portal-events-v3", // Super Admin edits to events survive a refresh
     keynotes: "portal-keynotes-v1", // added / edited / deleted keynotes
@@ -125,6 +125,8 @@ const MENU = [
   { id: "admin", label: "Super Admin console", hint: "Banner, countdown, controls" },
   { id: "auth", label: "Log in & registration", hint: "Sign in or create an account" },
 ];
+// TODO: Connect these navigation entries when their team pages are ready.
+const PLACEHOLDER_NAV_IDS = new Set(["mentors", "teams", "notices", "judging"]);
 const SIGNUP_ROLES = ["attendee", "mentor", "team", "judge", "superadmin"]; // roles a person can pick when registering
 // This shows which menus each account role can open.
 const ALLOWED = {
@@ -141,7 +143,7 @@ const TYPES = ["All", "Main Stage", "Workshop Lab", "Mentor Pit", "Lightning Tal
 const placeholderBanner = () =>
   "data:image/svg+xml," +
   encodeURIComponent(
-    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 420" preserveAspectRatio="xMidYMax slice"><defs><linearGradient id="s" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3a0a1c"/><stop offset="1" stop-color="#14153a"/></linearGradient></defs><rect width="1600" height="420" fill="url(#s)"/><g fill="#fff" fill-opacity=".07"><ellipse cx="620" cy="40" rx="110" ry="34"/><ellipse cx="540" cy="52" rx="70" ry="26"/><ellipse cx="1330" cy="50" rx="80" ry="26"/><ellipse cx="300" cy="70" rx="60" ry="20"/></g><path d="M0 420V330C200 250 380 250 560 330S900 300 1020 250 1300 300 1600 330V420Z" fill="#5a1233"/><path d="M0 420V360C150 280 330 290 470 350S720 380 820 340 1200 250 1400 310 1560 340 1600 350V420Z" fill="#2a0d24"/></svg>',
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 420" preserveAspectRatio="xMidYMax slice"><defs><linearGradient id="s" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1e2028"/><stop offset="1" stop-color="#0d0e12"/></linearGradient></defs><rect width="1600" height="420" fill="url(#s)"/><g fill="#fff" fill-opacity=".07"><ellipse cx="620" cy="40" rx="110" ry="34"/><ellipse cx="540" cy="52" rx="70" ry="26"/><ellipse cx="1330" cy="50" rx="80" ry="26"/><ellipse cx="300" cy="70" rx="60" ry="20"/></g><path d="M0 420V330C200 250 380 250 560 330S900 300 1020 250 1300 300 1600 330V420Z" fill="#2a151b"/><path d="M0 420V360C150 280 330 290 470 350S720 380 820 340 1200 250 1400 310 1560 340 1600 350V420Z" fill="#121318"/></svg>',
   );
 const inHours = (h) => new Date(Date.now() + h * 3600000).toISOString();
 // The admin can change the banner picture and countdown time.
@@ -413,10 +415,8 @@ const clockShort = (ms) => new Date(ms).toLocaleTimeString([], { hour: "numeric"
 const timeLabel = (s) => clockShort(s.start) + " - " + clockShort(s.end);
 const toLocalInput = (ms) => new Date(ms - new Date(ms).getTimezoneOffset() * 60000).toISOString().slice(0, 16); // datetime-local wants local time
 const fmtWhen = (ms) => new Date(ms).toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
-const visibleMenu = () => MENU.filter((m) => ALLOWED[STATE.role].includes(m.id));
 const can = (role, id) => ALLOWED[role].includes(id);
-// The top menu shows all tabs except "Log in & registration".
-const navItems = () => visibleMenu().filter((m) => m.id !== "auth");
+const navItems = () => MENU.filter((m) => m.id !== "auth");
 function showError(form, target, message) {
   target.textContent = message;
   form.classList.toggle(CLS.error, Boolean(message));
@@ -593,11 +593,16 @@ function drawSidebar() {
     </div>`;
 }
 
-// Put one menu button on the page for each item the role can open.
+// Show all six menu entries; only live and the authorized admin console are active routes.
 function drawNav() {
   DOM.topNav.innerHTML = `<ul class="top-nav__list">${navItems()
     .map(
-      (m) => `<li class="top-nav__item"><button class="top-nav__link${withClass(STATE.page === m.id, CLS.active)}" data-action="nav" data-value="${m.id}" title="${m.hint}"${STATE.page === m.id ? ' aria-current="page"' : ""}><span class="top-nav__icon">${svg(m.id, 18)}</span><span class="top-nav__label">${m.label}</span></button></li>`,
+      (m) => {
+        const placeholder = PLACEHOLDER_NAV_IDS.has(m.id);
+        const canOpen = !placeholder && can(STATE.role, m.id);
+        const title = placeholder ? "TODO: connect this page later" : canOpen ? m.hint : "Available to Super Admins only";
+        return `<li class="top-nav__item"><button class="top-nav__link${withClass(STATE.page === m.id, CLS.active)}${withClass(!canOpen, "is-disabled")}" data-action="nav" data-value="${m.id}" title="${title}"${canOpen ? "" : ' disabled aria-disabled="true"'}${STATE.page === m.id ? ' aria-current="page"' : ""}><span class="top-nav__icon">${svg(m.id, 18)}</span><span class="top-nav__label">${m.label}</span></button></li>`;
+      },
     )
     .join("")}</ul>`;
 }
@@ -1302,7 +1307,7 @@ function onKeydown(e) {
   // keyboard shortcut: press 1, 2, 3... to open that menu item
   if (/INPUT|TEXTAREA|SELECT/.test(e.target.tagName) || e.ctrlKey || e.metaKey || e.altKey) return;
   const item = navItems()[Number(e.key) - 1];
-  if (item) go(item.id);
+  if (item && !PLACEHOLDER_NAV_IDS.has(item.id) && can(STATE.role, item.id)) go(item.id);
 }
 function onSubmit(e) {
   e.preventDefault();

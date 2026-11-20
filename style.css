@@ -159,7 +159,9 @@
   --color-banner-text: #fff;
   --color-chip-text: #e8e8ee;
   --color-banner-summary: #e6e6ee;
-  --color-burgundy: #90173b;
+  --color-burgundy: #2a151b;
+  --color-callout: #fce8ec;
+  --color-callout-line: #f3b4c0;
   --color-glitch-cyan: #00e5ff;
   --color-glitch-pink: #ff2d6f;
   --white-a18: rgba(255, 255, 255, 0.18);
@@ -172,11 +174,11 @@
   --white-a50: rgba(255, 255, 255, 0.5);
   --white-a85: rgba(255, 255, 255, 0.85);
   --ink-a70: rgba(10, 10, 14, 0.7);
-  --accent-rgb: 240, 24, 79;
+  --accent-rgb: 230, 30, 60;
   --accent-a75: rgba(var(--accent-rgb), 0.75);
   --accent-a24: rgba(var(--accent-rgb), 0.24);
-  --fill-start: rgba(36, 6, 20, 0.97);
-  --fill-mid: rgba(36, 6, 20, 0.82);
+  --fill-start: rgba(42, 21, 27, 0.97);
+  --fill-mid: rgba(42, 21, 27, 0.82);
   --fill-end: rgba(36, 6, 20, 0);
   --banner-overlay: linear-gradient(180deg, rgba(8, 8, 12, 0.35), rgba(8, 8, 12, 0.7));
 
@@ -193,12 +195,12 @@
   --glow-lock-on: 0 0 18px rgba(var(--accent-rgb), 0.45), inset 0 0 12px rgba(var(--accent-rgb), 0.2);
 
   /* ---- Pixel-dissolve palette (script.js reads these) ---- */
-  --pixel-1: #f0184f;
-  --pixel-2: #ff5c8a;
-  --pixel-3: #90173b;
-  --pixel-4: #f1f2f6;
-  --pixel-5: #7c6dff;
-  --pixel-6: #2a2c38;
+  --pixel-1: #e61e3c;
+  --pixel-2: #f42544;
+  --pixel-3: #7a1426;
+  --pixel-4: #ffffff;
+  --pixel-5: #2a151b;
+  --pixel-6: #2a2d37;
 
   /* ---- Banner behaviour (script.js reads --banner-shrink and writes --banner-h, --banner-fill-progress, --banner-scale) ---- */
   --banner-shrink: 0.2;         /* share of the banner that scrolls away before it pins */
@@ -219,7 +221,7 @@
   --color-line: #dcdde5;
   --color-text: #16171d;
   --color-text-soft: #62647a;
-  --color-accent: #d90f45;
+  --color-accent: #e61e3c;
   --color-violet: #5a49f0;
   --color-ok: #0b9367;
   --color-warning: #a86a0a;
@@ -233,30 +235,36 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --color-bg: #0d0e12;
-    --color-panel: #13141a;
-    --color-panel-alt: #191a22;
-    --color-line: #262833;
-    --color-text: #f1f2f6;
-    --color-text-soft: #9496a6;
-    --color-accent: #f0184f;
-    --color-violet: #7c6dff;
+    --color-panel: #181920;
+    --color-panel-alt: #1e2028;
+    --color-line: #2a2d37;
+    --color-text: #ffffff;
+    --color-text-soft: #9ca3af;
+    --color-accent: #e61e3c;
+    --color-violet: #e61e3c;
     --color-ok: #2fd49c;
     --color-warning: #f5b942;
-    --color-countdown-card: #0f1218;
+    --color-countdown-card: #181920;
+    --color-brand: #121318;
+    --color-callout: #2a151b;
+    --color-callout-line: #5a252f;
   }
 }
 :root[data-theme="dark"] {
   --color-bg: #0d0e12;
-  --color-panel: #13141a;
-  --color-panel-alt: #191a22;
-  --color-line: #262833;
-  --color-text: #f1f2f6;
-  --color-text-soft: #9496a6;
-  --color-accent: #f0184f;
-  --color-violet: #7c6dff;
+  --color-panel: #181920;
+  --color-panel-alt: #1e2028;
+  --color-line: #2a2d37;
+  --color-text: #ffffff;
+  --color-text-soft: #9ca3af;
+  --color-accent: #e61e3c;
+  --color-violet: #e61e3c;
   --color-ok: #2fd49c;
   --color-warning: #f5b942;
-  --color-countdown-card: #0f1218;
+  --color-countdown-card: #181920;
+  --color-brand: #121318;
+  --color-callout: #2a151b;
+  --color-callout-line: #5a252f;
 }
 @media (max-width: 700px) {
   /* On small screens, make the side bar a bit narrower. */
@@ -611,6 +619,7 @@ textarea.input { resize: vertical; line-height: var(--lh-control); }
   display: block;
   width: var(--logo-w);
   height: auto;
+  filter: drop-shadow(0 0 8px var(--accent-a24));
   transition: width var(--dur-medium) var(--ease-out);
 }
 .sidebar:hover .sidebar__logo-img,
@@ -841,10 +850,12 @@ textarea.input { resize: vertical; line-height: var(--lh-control); }
 }
 .top-nav__link:hover .top-nav__icon { background: var(--white-a25); }
 .top-nav__link.is-active .top-nav__icon {
-  background: var(--color-on-accent);
-  color: var(--color-brand);
-  box-shadow: var(--ring-active-icon);
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+  box-shadow: 0 0 0 3px var(--accent-a24);
 }
+.top-nav__link:disabled { color: var(--color-text-soft); cursor: not-allowed; opacity: 0.62; }
+.top-nav__link:disabled:hover .top-nav__icon { background: transparent; }
 .top-nav__link.is-active::after {
   content: "";
   position: absolute;
@@ -853,8 +864,8 @@ textarea.input { resize: vertical; line-height: var(--lh-control); }
   width: var(--pill-dot);
   height: var(--pill-dot);
   border-radius: var(--radius-round);
-  background: var(--color-on-accent);
-  box-shadow: var(--shadow-dot-glow);
+  background: var(--color-accent);
+  box-shadow: 0 0 8px var(--accent-a75);
   transform: translateX(-50%);
 }
 
@@ -864,9 +875,9 @@ textarea.input { resize: vertical; line-height: var(--lh-control); }
   align-items: center;
   gap: var(--space-10);
   padding: var(--space-6) var(--page-pad-x);
-  background: var(--color-panel-alt);
+  background: var(--color-callout);
   color: var(--color-text-soft);
-  border-bottom: var(--border-w) solid var(--color-line);
+  border-bottom: var(--border-w) solid var(--color-callout-line);
   overflow: hidden;
 }
 .broadcast__message {
@@ -878,7 +889,7 @@ textarea.input { resize: vertical; line-height: var(--lh-control); }
   width: var(--dot);
   height: var(--dot);
   border-radius: var(--radius-round);
-  background: var(--color-burgundy);
+  background: var(--color-accent);
   flex: none;
 }
 .broadcast__close {
