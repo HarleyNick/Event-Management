@@ -20,7 +20,7 @@
    1. CONFIG
    ========================================================================== */
 const CONFIG = {
-  logoSrc: "../logo-white.png",
+  logoSrc: "assets/logo-white.png",
   storage: {
     events: "portal-events-v3", // Super Admin edits to events survive a refresh
     keynotes: "portal-keynotes-v1", // added / edited / deleted keynotes
@@ -48,7 +48,7 @@ const CONFIG = {
     cardDissolveMs: 1100,
     cardCell: 10,
   },
-  collapseMs: 540, // keep in step with --dur-collapse in styles.css
+  collapseMs: 540, // keep in step with --dur-collapse in css/live-program.css
   pixelTokens: ["--pixel-1", "--pixel-2", "--pixel-3", "--pixel-4", "--pixel-5", "--pixel-6"],
   scrambleChars: "#%&01<>_=+*",
   qaMinutesLabel: "questions",
@@ -56,7 +56,7 @@ const CONFIG = {
 
 
 /* ==========================================================================
-   2. CLASSES: the state names defined in styles.css
+   2. CLASSES: the state names defined in css/live-program.css
    ========================================================================== */
 const CLS = {
   hidden: "is-hidden",
@@ -1320,7 +1320,7 @@ function onSubmit(e) {
    11. init(): wire every listener once, then start the app
    ========================================================================== */
 function init() {
-  // Settings that live in styles.css are read from the tokens, so the two files can never disagree.
+  // Settings in css/live-program.css are read from tokens so the files stay in sync.
   STATE.bannerShrink = parseFloat(readToken("--banner-shrink")) || STATE.bannerShrink;
   STATE.pixelPalette = CONFIG.pixelTokens.map(readToken);
 

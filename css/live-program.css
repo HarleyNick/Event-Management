@@ -194,7 +194,7 @@
   --glow-lock-off: 0 0 0 rgba(var(--accent-rgb), 0), inset 0 0 0 rgba(var(--accent-rgb), 0);
   --glow-lock-on: 0 0 18px rgba(var(--accent-rgb), 0.45), inset 0 0 12px rgba(var(--accent-rgb), 0.2);
 
-  /* ---- Pixel-dissolve palette (script.js reads these) ---- */
+  /* ---- Pixel-dissolve palette (js/live-program.js reads these) ---- */
   --pixel-1: #e61e3c;
   --pixel-2: #f42544;
   --pixel-3: #7a1426;
@@ -202,7 +202,7 @@
   --pixel-5: #2a151b;
   --pixel-6: #2a2d37;
 
-  /* ---- Banner behaviour (script.js reads --banner-shrink and writes --banner-h, --banner-fill-progress, --banner-scale) ---- */
+  /* ---- Banner behaviour (js/live-program.js reads --banner-shrink and writes --banner-h, --banner-fill-progress, --banner-scale) ---- */
   --banner-shrink: 0.2;         /* share of the banner that scrolls away before it pins */
   --banner-fill-max: 20%;       /* how far the side fill spreads in from each edge */
   --banner-h: 280px;
@@ -328,7 +328,7 @@ svg { flex: none; }
 }
 .cluster--center { justify-content: center; }
 
-/* ---- State classes. script.js adds and removes these; it never writes inline styles. ---- */
+/* ---- State classes. js/live-program.js adds and removes these; it never writes inline styles. ---- */
 .is-hidden { display: none !important; }
 .is-collapsing {
   box-sizing: border-box;

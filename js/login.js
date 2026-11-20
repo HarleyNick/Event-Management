@@ -450,6 +450,37 @@ pins.forEach((inp, i) => {
    ========================================================================== */
 let verifying = false;   // stops the check running twice at the same time
 
+async function startLiveProgramSession(){
+  const email = user.email.trim().toLowerCase();
+  const role = user.role.toLowerCase();
+  const accountsKey = 'portal-accounts-v1';
+  const sessionKey = 'portal-session-v1';
+  const accounts = JSON.parse(localStorage.getItem(accountsKey) || '[]');
+  if (!Array.isArray(accounts)) throw new Error('Live program accounts must be a list.');
+
+  const index = accounts.findIndex(account =>
+    account && typeof account.email === 'string' && account.email.toLowerCase() === email
+  );
+  const existing = index >= 0 ? accounts[index] : {};
+  const digest = await crypto.subtle.digest(
+    'SHA-256',
+    new TextEncoder().encode(email + ':' + $('#pw').value)
+  );
+  const key = [...new Uint8Array(digest)].map(byte => byte.toString(16).padStart(2, '0')).join('');
+  const account = {
+    ...existing,
+    email,
+    name: user.name || existing.name || email.split('@')[0],
+    role,
+    key
+  };
+
+  if (index >= 0) accounts[index] = account;
+  else accounts.push(account);
+  localStorage.setItem(accountsKey, JSON.stringify(accounts));
+  localStorage.setItem(sessionKey, email);
+}
+
 async function verify(){
   if (verifying) return;
 
@@ -469,6 +500,14 @@ async function verify(){
 
   // --- Correct code: show the success screen ---
   if (ok){
+    try{
+      await startLiveProgramSession();
+    }catch(error){
+      console.error('Could not establish the live program session.', error);
+      $('#e-pin').textContent = 'Could not start the live program. Please try again.';
+      return;
+    }
+
     $('#done-title').textContent = user.name
       ? 'Welcome, ' + user.name.split(' ')[0]   // first name only
       : "You're in";
@@ -482,6 +521,7 @@ async function verify(){
     renderProfile();
     $('#done-role').textContent = user.role + (user.team ? ' · ' + user.team : '');
     show('done');
+    window.location.assign('live-program.html');
     return;
   }
 

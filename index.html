@@ -5,15 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Sign in or register</title>
 
-<!-- Styles: all the CSS lives in style/style.css -->
-<link rel="stylesheet" href="style/style.css">
+<!-- Styles: all the CSS lives in css/login.css -->
+<link rel="stylesheet" href="css/login.css">
 
-<!-- Apply the saved (or device) theme BEFORE the page paints, so dark mode
-     doesn't flash white first. The switch itself is handled in script.js. -->
+<!-- Apply the saved theme, defaulting to the site's dark theme before paint. -->
 <script>
   try{
-    document.documentElement.dataset.theme = localStorage.getItem('theme') ||
-      (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.dataset.theme = localStorage.getItem('theme') || 'dark';
   }catch(e){}
 </script>
 </head>
@@ -51,6 +49,7 @@
          Shown first. Used for both signing in and registering.
          ==================================================================== -->
     <section id="view-auth">
+      <img class="brand-logo" src="assets/logo-white.png" alt="Limpopo Dev Ecosystem">
       <!-- Heading and subtitle change depending on the active tab -->
       <h1 id="title">Welcome back</h1>
       <p class="sub" id="subtitle">Choose your role, then sign in.</p>
@@ -62,7 +61,7 @@
         <li data-n="3"><b>3</b><span>Finish</span></li>
       </ol>
 
-      <!-- Social sign-in buttons (not connected yet: see script.js) -->
+      <!-- Social sign-in buttons (not connected yet: see js/login.js) -->
       <div class="social" data-step="1" role="group" aria-label="Sign in with a social account">
         <button class="soc" type="button" data-provider="Facebook" aria-label="Continue with Facebook">f</button>
         <button class="soc" type="button" data-provider="Google" aria-label="Continue with Google">G</button>
@@ -321,8 +320,8 @@
   </aside>
 </main>
 
-<!-- JavaScript: all the page logic lives in javascript/script.js.
+<!-- JavaScript: all the page logic lives in js/login.js.
      It is loaded at the end of the body so the HTML above exists first. -->
-<script src="javascript/script.js"></script>
+<script src="js/login.js"></script>
 </body>
 </html>

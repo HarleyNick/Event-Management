@@ -60,28 +60,28 @@
    Applied when <html data-theme="dark"> (set by the switch in the top right). */
 :root[data-theme="dark"]{
   color-scheme:dark;      /* dark scrollbars and form controls */
-  --ink:#e8edf5;
-  --muted:#a3adbd;
-  --line:#34405a;
-  --bg:#0f1624;
-  --card:#182235;
-  --accent:#3cc4c8;
-  --accent-dark:#7fdadd;
-  --accent-soft:#143a40;
+  --ink:#ffffff;
+  --muted:#9ca3af;
+  --line:#2a2d37;
+  --bg:#0d0e12;
+  --card:#181920;
+  --accent:#e61e3c;
+  --accent-dark:#f42544;
+  --accent-soft:#2a151b;
   --err:#ff8a80;
   --ok:#5fd39b;
   --ok-soft:#12372a;
-  --field:#101a2b;
-  --soft:#1d2940;
-  --hover-line:#51607d;
-  --on-accent:#06242a;
+  --field:#1e2028;
+  --soft:#1e2028;
+  --hover-line:#5a252f;
+  --on-accent:#ffffff;
   --notice-text:#a8ecc9;
   --demo-bg:#3a3017;
   --demo-text:#f5d98a;
   --err-bg:#3d1f22;
   --shadow:rgba(0,0,0,.55);
-  --ov-a:#0e6468;
-  --ov-b:#0a4a4e;
+  --ov-a:#e61e3c;
+  --ov-b:#7a1426;
 }
 
 
@@ -227,6 +227,19 @@ h1{
 #view-auth h1,
 #view-auth .sub{
   text-align:center;
+}
+
+.brand-logo{
+  display:block;
+  width:128px;
+  height:68px;
+  object-fit:contain;
+  margin:0 auto 18px;
+  padding:8px;
+  border:1px solid var(--accent);
+  border-radius:var(--radius);
+  background:#121318;
+  box-shadow:0 6px 20px rgba(230,30,60,.18);
 }
 
 /* Round social buttons (f, G+, in) and the "or use..." line */
