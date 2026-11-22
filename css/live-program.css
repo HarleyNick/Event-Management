@@ -1031,28 +1031,163 @@ textarea.input { resize: vertical; line-height: var(--lh-control); }
 .rsvp-button.is-done { color: var(--color-ok); border-color: var(--color-ok); }
 
 /* ---------- Super Admin console ---------- */
-.admin-grid {
+.admin-dashboard {
+  display: grid; /* Stack the overview, event settings and management tools. */
+  gap: var(--space-20); /* Keep a consistent rhythm between dashboard sections. */
+  width: 100%;
+}
+.admin-hero {
+  display: flex; /* Place the console introduction beside the selected-event summary. */
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-24);
+  padding: clamp(20px, 3vw, 32px);
+  border: var(--border-w) solid var(--color-line);
+  border-radius: var(--radius-16);
+  background: linear-gradient(120deg, color-mix(in srgb, var(--color-accent) 12%, var(--color-panel)), var(--color-panel) 70%);
+}
+.admin-hero h2 { margin: var(--space-0) var(--space-0) var(--space-8); font-size: clamp(1.5rem, 3vw, 2rem); }
+.admin-hero > div:first-child > p:last-child { margin-bottom: var(--space-0); }
+.admin-kicker {
+  margin: var(--space-0) var(--space-0) var(--space-6);
+  color: var(--color-accent);
+  font: 700 var(--fs-72) var(--font-mono);
+  letter-spacing: .12em;
+}
+.admin-current-event {
+  display: grid;
+  justify-items: start;
+  gap: var(--space-6);
+  min-width: min(250px, 100%);
+  padding: var(--space-14) var(--space-16);
+  border: var(--border-w) solid var(--color-line);
+  border-radius: var(--radius-12);
+  background: var(--color-panel-alt);
+}
+.admin-current-event > span:first-child,
+.admin-metric > span {
+  color: var(--color-text-soft);
+  font: 700 var(--fs-72) var(--font-mono);
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+.admin-current-event strong { font-size: var(--fs-105); }
+.admin-current-event .pill { margin: var(--space-0); }
+.admin-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-12);
+}
+.admin-metric {
+  display: grid;
+  gap: var(--space-4);
+  padding: var(--space-16) var(--space-18);
+  border: var(--border-w) solid var(--color-line);
+  border-radius: var(--radius-12);
+  background: var(--color-panel);
+}
+.admin-metric strong { font: 800 var(--fs-150) var(--font-heading); }
+.admin-metric small,
+.admin-setting__heading p,
+.admin-hint { color: var(--color-text-soft); }
+.admin-status-open { color: var(--color-ok); }
+.admin-status-closed { color: var(--color-accent); }
+.admin-dashboard .admin-card {
+  max-width: none;
+  display: block;
+  margin: var(--space-0);
+  padding: clamp(18px, 2.5vw, 28px);
+}
+.admin-section-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-16);
+  margin-bottom: var(--space-20);
+  padding-bottom: var(--space-14);
+  border-bottom: var(--border-w) solid var(--color-line);
+}
+.admin-section-head h3 { margin: var(--space-0) var(--space-0) var(--space-4); }
+.admin-section-head p { margin-top: var(--space-0); }
+.admin-section-icon { flex: none; color: #f43f5e; }
+.admin-settings-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--space-20);
+  gap: var(--space-12);
+}
+.admin-setting {
+  display: grid;
+  align-content: start;
+  gap: var(--space-10);
+  padding: var(--space-16);
+  border: var(--border-w) solid var(--color-line);
+  border-radius: var(--radius-12);
+  background: var(--color-panel-alt);
+}
+.admin-setting__heading { display: flex; align-items: center; gap: var(--space-10); }
+.admin-setting__heading h4 { margin: var(--space-0) var(--space-0) var(--space-2); }
+.admin-setting__heading p { margin: var(--space-0); font-size: var(--fs-85); }
+.admin-setting__icon {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  flex: none;
+  place-items: center;
+  border-radius: var(--radius-8);
+  background: rgba(244, 63, 94, .14);
+  color: #f43f5e;
+}
+.admin-setting > label:not(.field--check) { display: grid; gap: var(--space-6); font-size: var(--fs-85); }
+.admin-setting .btn { justify-self: start; }
+.admin-submission-setting { align-content: center; }
+.admin-submission-setting .field--check { align-items: flex-start; }
+.admin-submission-setting .field--check span { display: grid; gap: var(--space-2); }
+.admin-submission-setting .field--check small { color: var(--color-text-soft); }
+.admin-hint { font-size: var(--fs-78); }
+.admin-management-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(300px, .85fr);
   align-items: start;
-  margin-top: var(--space-20);
+  gap: var(--space-20);
 }
-.admin-grid__item { max-width: none; width: auto; margin: var(--space-0); }
-.admin-grid__item--settings { grid-column: 2; grid-row: 1; }
-.admin-grid__item--keynotes { grid-column: 1; grid-row: 1 / span 2; }
-.admin-grid__item--events { grid-column: 2; grid-row: 2; }
-.admin-list__item {
+.admin-form { gap: var(--space-12); }
+.admin-form > .field { display: grid; gap: var(--space-6); }
+.admin-form .form__split { align-items: start; }
+.admin-form .field--check { display: flex; align-items: center; }
+.admin-form .cluster { align-items: center; }
+.admin-records { display: grid; gap: var(--space-8); margin-top: var(--space-22); }
+.admin-records h4 {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
   justify-content: space-between;
-  gap: var(--space-8);
-  margin-top: var(--space-10);
+  margin: var(--space-0);
+  color: var(--color-text-soft);
+  font: 700 var(--fs-78) var(--font-mono);
+  letter-spacing: .06em;
+  text-transform: uppercase;
 }
-.admin-list__item--event { gap: var(--space-10); margin-top: var(--space-8); }
-.admin-list__info { min-width: 0; }
-.admin-list__actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-6); }
+.admin-records h4 span {
+  display: grid;
+  width: 24px;
+  height: 24px;
+  place-items: center;
+  border-radius: var(--radius-round);
+  background: var(--color-panel-alt);
+  color: var(--color-text);
+}
+.admin-record {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-12);
+  padding: var(--space-12) var(--space-0);
+  border-top: var(--border-w) solid var(--color-line);
+}
+.admin-record__main,
+.admin-record > span:first-child { display: grid; gap: var(--space-4); min-width: 0; }
+.admin-record small { color: var(--color-text-soft); }
+.admin-record__actions { display: flex; flex: none; gap: var(--space-6); }
+.admin-record .btn { min-height: 36px; padding-inline: var(--space-10); }
+.admin-dashboard .form__error:empty { display: none; }
 
 /* ---------- Floating Mini Q&A (a round bubble that morphs into the panel) ---------- */
 /* This needs to stay on top so the opened Q&A box and close button are usable. */
@@ -1312,11 +1447,8 @@ body,
   .top-nav__label { font-size: var(--fs-82); }
 }
 @media (max-width: 900px) {
-  /* On tablets, put the admin boxes in one column and reduce the side space. */
-  .admin-grid { grid-template-columns: minmax(0, 1fr); }
-  .admin-grid__item--settings,
-  .admin-grid__item--keynotes,
-  .admin-grid__item--events { grid-column: auto; grid-row: auto; }
+  /* Stack schedule and event tools when their desktop columns become too narrow. */
+  .admin-management-grid { grid-template-columns: minmax(0, 1fr); }
   .page-header, .page, .broadcast, .banner {
     padding-left: var(--page-pad-x-sm);
     padding-right: var(--page-pad-x-sm);
@@ -1329,6 +1461,12 @@ body,
 @media (max-width: 560px) {
   /* Put the event form fields below each other so date controls are easier to use. */
   .form--event .form__split { grid-template-columns: 1fr; }
+  .admin-hero { align-items: stretch; flex-direction: column; }
+  .admin-current-event { min-width: 0; }
+  .admin-metrics,
+  .admin-settings-grid { grid-template-columns: 1fr; }
+  .admin-record { align-items: flex-start; flex-direction: column; }
+  .admin-record__actions { width: 100%; }
 }
 @media (max-width: 420px) {
   /* Make the countdown smaller on very small phones. */
