@@ -3,17 +3,15 @@
 
    Contents
    1. Helpers
-   2. Server calls (replace these with your real backend)
+   2. Local account storage
    3. State
    4. Validation rules
    5. Validation functions
    6. Switching between Sign in and Register
    7. Live validation and password toggle
-   8. Switching between views (form, PIN, success)
+   8. Switching between views (form, success)
    9. Form submit
-   10. PIN boxes (typing, backspace, arrows, paste)
-   11. PIN verification
-   12. Buttons: Back and Sign out
+   10. Buttons: Sign out
    13. Profile builder (photo, skills, social links)
    14. Registration steps (3 parts)
    15. Theme switch (light / dark)
@@ -32,14 +30,13 @@ const $ = s => document.querySelector(s);
 // $$('.class') -> finds ALL matching elements and returns a real array
 const $$ = s => [...document.querySelectorAll(s)];
 
-// wait(700) -> pauses for 700 ms (used to fake a slow server in the demo)
+// Keeps the local account flow responsive to slower storage operations.
 const wait = ms => new Promise(r => setTimeout(r, ms));
 
 
 /* ==========================================================================
-   2. SERVER CALLS
-   These are DEMO versions that pretend to talk to a server.
-   Replace each one with a real fetch() call to your backend.
+   2. LOCAL ACCOUNT STORAGE
+   Accounts are stored in this browser until a backend is connected.
    ========================================================================== */
 
 // Create a new account. Should return { ok: true } on success.
@@ -53,8 +50,7 @@ async function apiRegister(data){
   if (!Array.isArray(accounts)) accounts = [];
   const email = data.email.trim().toLowerCase();
   const duplicate = accounts.some(account => account.email && account.email.toLowerCase() === email);
-  const demoEmails = ['attendee@demo.test', 'mentor@demo.test', 'team@demo.test', 'judge@demo.test', 'admin@demo.test'];
-  if (duplicate || demoEmails.includes(email)) throw new Error('An account already exists for that email.');
+  if (duplicate) throw new Error('An account already exists for that email.');
   return { ok: true };
 }
 
@@ -63,16 +59,6 @@ async function apiLogin(data){
   await wait(700);
   const email = data.email.trim().toLowerCase();
   const role = data.role.toLowerCase().replace(/\s+/g, '');
-  const demos = {
-    'attendee@demo.test': 'attendee',
-    'mentor@demo.test': 'mentor',
-    'team@demo.test': 'team',
-    'judge@demo.test': 'judge',
-    'admin@demo.test': 'superadmin'
-  };
-  if (demos[email]) {
-    return { ok: demos[email] === role && data.password === 'demo1234' };
-  }
 
   let accounts = [];
   try { accounts = JSON.parse(localStorage.getItem('portal-accounts-v1') || '[]'); } catch { accounts = []; }
@@ -86,21 +72,12 @@ async function apiLogin(data){
   return { ok: account.key === key };
 }
 
-// Check the 6-digit authenticator code. Should return true or false.
-// Demo: the only code that works is 123456.
-async function apiVerifyPin(code){
-  await wait(500);
-  return code === '123456';
-}
-
-
 /* ==========================================================================
    3. STATE
    Values the page remembers while it is open.
    ========================================================================== */
 let mode = 'login';   // 'login' or 'register' (which tab is active)
 let user = null;      // details of the person who just submitted the form
-let attempts = 0;     // how many wrong PIN codes have been entered
 let skills = [];      // skills / tech stack tags chosen in the profile builder
 let step = 1;         // which registration step is showing (1, 2 or 3)
 
@@ -173,10 +150,7 @@ const rules = {
     : (mode === 'register' && v.length < 8 ? 'Use at least 8 characters' : ''),
 
   // Must match the first password box
-  pw2: v => v === $('#pw').value ? '' : "Passwords don't match",
-  'admin-code': v => needsSuperAdminCode() && v.trim() !== 'LIMPOPO-ADMIN'
-    ? 'Enter the correct Super Admin access code'
-    : ''
+  pw2: v => v === $('#pw').value ? '' : "Passwords don't match"
 };
 
 // Roles that must also give a team name.
@@ -193,7 +167,6 @@ const selectedRole = () => {
 // True when the team name question must be asked:
 // registering AND the role is one of TEAM_ROLES
 const needsTeam = () => mode === 'register' && TEAM_ROLES.includes(selectedRole());
-const needsSuperAdminCode = () => mode === 'register' && selectedRole() === 'Super Admin';
 
 // Which fields must be checked in each mode
 const fieldsFor = () => {
@@ -203,7 +176,6 @@ const fieldsFor = () => {
   const fields = ['photo', 'fullname', 'email', 'job', 'org', 'about', 'skills',
                   'linkedin', 'facebook', 'github', 'website', 'pw', 'pw2'];
   if (needsTeam()) fields.splice(fields.indexOf('email') + 1, 0, 'team');   // team name sits under email
-  if (needsSuperAdminCode()) fields.splice(fields.indexOf('email') + 1, 0, 'admin-code');
   return fields;
 };
 
@@ -293,12 +265,6 @@ function updateTeamField(){
     $('#team').setAttribute('aria-invalid', 'false');
   }
 
-  const adminVisible = needsSuperAdminCode();
-  $('#admin-code-field').hidden = !adminVisible;
-  if (!adminVisible){
-    $('#e-admin-code').textContent = '';
-    $('#admin-code').setAttribute('aria-invalid', 'false');
-  }
 }
 
 // Buttons on the coloured panel, and the link shown on small screens
@@ -346,12 +312,10 @@ $('#show').onchange = e => {
 
 /* ==========================================================================
    8. SWITCHING BETWEEN VIEWS
-   show('auth') = form, show('pin') = authenticator, show('done') = success.
    The tabs are only visible on the form view.
    ========================================================================== */
 function show(view){
-  ['auth', 'pin', 'done'].forEach(v => $('#view-' + v).hidden = v !== view);
-  // Only the form view shows the sliding panel; PIN and success are a single card
+  ['auth', 'done'].forEach(v => $('#view-' + v).hidden = v !== view);
   $('#panel').classList.toggle('solo', view !== 'auth');
 }
 
@@ -359,7 +323,7 @@ function show(view){
 /* ==========================================================================
    9. FORM SUBMIT
    Runs when the user clicks "Sign in" or "Create account".
-   Steps: validate -> disable button -> call server -> show PIN screen.
+   Steps: validate -> check credentials -> establish the browser session.
    ========================================================================== */
 $('#form').addEventListener('submit', async e => {
   e.preventDefault();               // stop the browser reloading the page
@@ -410,7 +374,7 @@ $('#form').addEventListener('submit', async e => {
   // Temporary address of the chosen photo, used to show it on the success screen
   user.photoUrl = user.photo ? URL.createObjectURL(user.photo) : '';
 
-  // --- Talk to the server ---
+  // --- Check the account and establish the local session ---
   try{
     const res = mode === 'register'
       ? await apiRegister({
@@ -421,18 +385,18 @@ $('#form').addEventListener('submit', async e => {
       : await apiLogin({ ...user, password: $('#pw').value });
 
     if (!res.ok) throw new Error();
-
-    // Success: reset the PIN attempts and show the confirmation message
-    attempts = 0;
-    $('#pin-notice').textContent = mode === 'register'
-      ? 'Account created. We sent a confirmation to ' + user.email + '.'
-      : 'Signed in as ' + user.email + '. One more step to finish.';
-
-    // Start with empty PIN boxes, then go to the PIN screen
-    $$('#pin input').forEach(i => i.value = '');
-    $('#e-pin').textContent = '';
-    show('pin');
-    $('#pin input').focus();
+    await startLiveProgramSession();
+    $('#done-title').textContent = user.name
+      ? 'Welcome, ' + user.name.split(' ')[0]
+      : "You're in";
+    $('#done-sub').textContent = user.email;
+    $('#done-name').textContent = user.name;
+    $('#done-job').textContent = user.job;
+    $('#done-org').textContent = user.org;
+    renderProfile();
+    $('#done-role').textContent = user.role + (user.team ? ' · ' + user.team : '');
+    show('done');
+    window.location.assign('live-program.html');
 
   }catch{
     // Failure: show a message at the top of the form
@@ -447,50 +411,6 @@ $('#form').addEventListener('submit', async e => {
     btn.disabled = false;
   }
 });
-
-
-/* ==========================================================================
-   10. PIN BOXES
-   Six one-digit boxes that behave like a single code field.
-   ========================================================================== */
-const pins = $$('#pin input');
-
-pins.forEach((inp, i) => {
-
-  // Typing: keep one digit only, jump to the next box, auto-verify when full
-  inp.addEventListener('input', () => {
-    inp.value = inp.value.replace(/\D/g, '').slice(0, 1);
-    if (inp.value && i < 5) pins[i + 1].focus();
-    if (pins.every(p => p.value)) verify();
-  });
-
-  // Keyboard: Backspace on an empty box goes back, arrows move left/right
-  inp.addEventListener('keydown', e => {
-    if (e.key === 'Backspace' && !inp.value && i > 0) pins[i - 1].focus();
-    if (e.key === 'ArrowLeft'  && i > 0) pins[i - 1].focus();
-    if (e.key === 'ArrowRight' && i < 5) pins[i + 1].focus();
-  });
-
-  // Paste: spread a copied code (e.g. "123456") across the boxes
-  inp.addEventListener('paste', e => {
-    const d = (e.clipboardData.getData('text') || '')
-      .replace(/\D/g, '')
-      .slice(0, 6);
-    if (!d) return;
-
-    e.preventDefault();
-    [...d].forEach((c, k) => pins[k].value = c);
-    pins[Math.min(d.length, 5)].focus();
-    if (d.length === 6) verify();
-  });
-});
-
-
-/* ==========================================================================
-   11. PIN VERIFICATION
-   Runs when all 6 digits are entered or "Verify code" is clicked.
-   ========================================================================== */
-let verifying = false;   // stops the check running twice at the same time
 
 // Edited by NkosinathiM-ship: persist the selected role for the live-program app.
 async function startLiveProgramSession(){
@@ -524,82 +444,9 @@ async function startLiveProgramSession(){
   localStorage.setItem(sessionKey, email);
 }
 
-async function verify(){
-  if (verifying) return;
-
-  // Join the six boxes into one string, e.g. "123456"
-  const code = pins.map(p => p.value).join('');
-  if (code.length < 6){
-    $('#e-pin').textContent = 'Enter all 6 digits';
-    return;
-  }
-
-  // Disable the button while the server checks the code
-  verifying = true;
-  $('#verify').disabled = true;
-  const ok = await apiVerifyPin(code);
-  verifying = false;
-  $('#verify').disabled = false;
-
-  // --- Correct code: show the success screen ---
-  if (ok){
-    try{
-      await startLiveProgramSession();
-    }catch(error){
-      console.error('Could not establish the live program session.', error);
-      $('#e-pin').textContent = 'Could not start the live program. Please try again.';
-      return;
-    }
-
-    $('#done-title').textContent = user.name
-      ? 'Welcome, ' + user.name.split(' ')[0]   // first name only
-      : "You're in";
-    $('#done-sub').textContent  = user.email;
-
-    // Profile card: name, professional title and organisation
-    // (hidden when we have none of them, e.g. a plain sign in in the demo)
-    $('#done-name').textContent = user.name;
-    $('#done-job').textContent  = user.job;
-    $('#done-org').textContent  = user.org;
-    renderProfile();
-    $('#done-role').textContent = user.role + (user.team ? ' · ' + user.team : '');
-    show('done');
-    // Edited by NkosinathiM-ship: send a verified login to the live program.
-    window.location.assign('live-program.html');
-    return;
-  }
-
-  // --- Wrong code ---
-  attempts++;
-
-  // After 3 wrong codes, send the user back to the sign-in form
-  if (attempts >= 3){
-    show('auth');
-    setMode('login');
-    $('#form-err').textContent = 'Too many wrong codes. Sign in again to get a fresh start.';
-    return;
-  }
-
-  // Otherwise show how many attempts are left and clear the boxes
-  const left = 3 - attempts;
-  $('#e-pin').textContent = "That code isn't right. " + left +
-    (left === 1 ? ' attempt' : ' attempts') + ' left.';
-  pins.forEach(p => p.value = '');
-  pins[0].focus();
-}
-
-$('#verify').onclick = verify;
-
-
 /* ==========================================================================
-   12. BUTTONS: BACK AND SIGN OUT
+   10. BUTTONS: SIGN OUT
    ========================================================================== */
-
-// "Back" on the PIN screen returns to the form
-$('#back').onclick = () => {
-  show('auth');
-  $('#email').focus();
-};
 
 // "Sign out" on the success screen clears everything and returns to sign in
 $('#signout').onclick = () => {
@@ -795,7 +642,7 @@ $('#form').addEventListener('reset', () => setTimeout(resetProfile, 0));
 
 // Fields to check on each step ("Next" only moves on when these are valid)
 const STEP_FIELDS = {
-  1: () => ['photo', 'fullname', 'email'].concat(needsSuperAdminCode() ? ['admin-code'] : []),
+  1: () => ['photo', 'fullname', 'email'],
   2: () => (needsTeam() ? ['team'] : []).concat(['job', 'org', 'about', 'skills']),
   3: () => ['linkedin', 'facebook', 'github', 'website', 'pw', 'pw2']
 };

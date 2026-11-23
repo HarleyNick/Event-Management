@@ -6,7 +6,7 @@
    4. Current app state
    5. HTML parts
    6. Small helper functions
-   7. Saving data and demo accounts
+   7. Saving data and accounts
    8. Functions that draw the page
    9. Moving effects
    10. Button and form actions
@@ -28,9 +28,6 @@ const CONFIG = {
     accounts: "portal-accounts-v1",
     session: "portal-session-v1",
   },
-  demoPassword: "demo1234",
-  // This is only a demo code for making a Super Admin account.
-  adminCode: "LIMPOPO-ADMIN",
   tickMs: 1000,
   freeze: {
     warnSeconds: 10, // crimson warning glow during the last N seconds
@@ -157,137 +154,6 @@ const placeholderBanner = () =>
   encodeURIComponent(
     '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 420" preserveAspectRatio="xMidYMax slice"><defs><linearGradient id="s" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1e2028"/><stop offset="1" stop-color="#0d0e12"/></linearGradient></defs><rect width="1600" height="420" fill="url(#s)"/><g fill="#fff" fill-opacity=".07"><ellipse cx="620" cy="40" rx="110" ry="34"/><ellipse cx="540" cy="52" rx="70" ry="26"/><ellipse cx="1330" cy="50" rx="80" ry="26"/><ellipse cx="300" cy="70" rx="60" ry="20"/></g><path d="M0 420V330C200 250 380 250 560 330S900 300 1020 250 1300 300 1600 330V420Z" fill="#2a151b"/><path d="M0 420V360C150 280 330 290 470 350S720 380 820 340 1200 250 1400 310 1560 340 1600 350V420Z" fill="#121318"/></svg>',
   );
-const inHours = (h) => new Date(Date.now() + h * 3600000).toISOString();
-// The admin can change the banner picture and countdown time.
-const DEFAULT_EVENTS = [
-  {
-    id: "limpopo",
-    name: "SYNAPSE 2026 // Limpopo Dev Hackathon",
-    short: "Limpopo Dev Hackathon",
-    date: "Nov 10-12, 2026",
-    tag: "48-Hour Live Build & Pitch Championship",
-    place: "Moscone Center West & Global Virtual Stream",
-    open: true,
-    dueAt: inHours(18),
-    image: placeholderBanner(),
-    summary:
-      "Premier 48-hour global multimodal artificial intelligence, agentic frameworks, and edge computing championship.",
-    tracks: ["Generative AI", "Web3", "Hardware & Edge", "Climate Tech", "Social Impact"],
-  },
-  {
-    id: "zk",
-    name: "Zero Knowledge Summit",
-    short: "Zero Knowledge Summit",
-    date: "Dec 3-4, 2026",
-    tag: "Two Days of Talks & Workshops",
-    place: "Global Virtual Stream",
-    open: true,
-    dueAt: inHours(72),
-    image: placeholderBanner(),
-    summary: "Two days of talks and workshops on privacy-preserving technology.",
-    tracks: ["Proofs", "Privacy", "Layer 2"],
-  },
-  {
-    id: "climate",
-    name: "Climate Tech Sprint",
-    short: "Climate Tech Sprint",
-    date: "Jan 15-17, 2027",
-    tag: "Weekend Build Sprint",
-    place: "Global Virtual Stream",
-    open: false,
-    dueAt: inHours(240),
-    image: placeholderBanner(),
-    summary: "A weekend sprint to build tools for a greener future.",
-    tracks: ["Energy", "Water", "Farming"],
-  },
-];
-
-// Sessions have a start and end time.
-// A session says "Live now" while it is running and leaves the page after it ends.
-// These demo times start relative to page load, so the first keynote ends after a few minutes.
-const inMin = (m) => Date.now() + m * 60000;
-const DEFAULT_SESSIONS = [
-  {
-    id: 1,
-    topics: ["Generative AI"],
-    type: "Main Stage",
-    start: inMin(-40),
-    end: inMin(3),
-    title: "Keynote: Autonomous Agent Swarms with Multimodal Grounding",
-    about:
-      "Deep dive into next-generation reactive architectures where agentic loops fuse vision, audio, and code execution with verifiable consensus.",
-    who: "Dr. Aris Thorne, Google DeepMind",
-  },
-  {
-    id: 2,
-    topics: ["Generative AI", "Hardware & Edge"],
-    type: "Workshop Lab",
-    start: inMin(4),
-    end: inMin(94),
-    title: "Hands-on Lab: Deploying Local SLMs on WebGPU & WASM",
-    about:
-      "Build and deploy a zero-latency in-browser embedding and generation pipeline with quantized weights running directly on user hardware.",
-    who: "Priya Sharma, Hugging Face",
-  },
-  {
-    id: 3,
-    topics: ["Generative AI"],
-    type: "Main Stage",
-    start: inMin(110),
-    end: inMin(170),
-    title: "Constitutional Safety & Red-Teaming for Production Agents",
-    about:
-      "Practical security frameworks to prevent jailbreaks, prompt injection, and unauthorized API execution in autonomous agent workflows.",
-    who: "Elena Rostova, Anthropic Core Systems",
-  },
-  {
-    id: 4,
-    topics: ["Web3"],
-    type: "Lightning Talks",
-    start: inMin(185),
-    end: inMin(230),
-    title: "Zero-Knowledge State Channels for Ultra-Fast Decentralized Gaming",
-    about:
-      "How to achieve sub-50ms verifiable off-chain game physics with succinct batch proofs settled periodically on layer-1.",
-    who: "Marcus Vance, Solana Labs",
-  },
-  {
-    id: 5,
-    topics: ["Social Impact"],
-    type: "Mentor Pit",
-    start: inMin(245),
-    end: inMin(320),
-    title: "Venture Pitch Clinic: What Judges & Angel VCs Look For",
-    about:
-      "1-on-1 critique of 3-minute deck structure, traction milestones, defensible moat articulation, and live demo stagecraft.",
-    who: "Kaito Tanaka, Cybernetic Ventures",
-  },
-];
-const MENTORS = [
-  ["Priya Sharma", "Machine learning"],
-  ["Kaito Tanaka", "Pitching and funding"],
-  ["Elena Rostova", "Security"],
-];
-const TEAMS = [
-  ["NeuralPulse", 4],
-  ["BioSynapse", 3],
-  ["ZeroProof", 5],
-  ["GreenGrid", 4],
-];
-const NOTICES = [
-  ["Lunch is at 1 PM", "Find the food tables near the main hall."],
-  ["Repository rule", "Your GitHub repo must be public and include a LICENSE file."],
-];
-// Demo accounts for trying the different roles.
-const DEMO_ACCOUNTS = [
-  { email: "attendee@demo.test", name: "Ayanda", role: "attendee" },
-  { email: "mentor@demo.test", name: "Priya", role: "mentor" },
-  { email: "team@demo.test", name: "Team NeuralPulse", role: "team" },
-  { email: "judge@demo.test", name: "Kaito", role: "judge" },
-  { email: "admin@demo.test", name: "Thandi", role: "superadmin" },
-];
-
-
 /* ==========================================================================
    4. STATE: everything that can change
    ========================================================================== */
@@ -295,7 +161,7 @@ const STATE = {
   events: loadEvents(),
   keynotes: loadKeynotes(), // { add: [], del: [], mod: {} }
   accounts: [],
-  eventId: "limpopo",
+  eventId: "",
   role: "guest",
   loggedIn: false,
   user: null,
@@ -312,38 +178,9 @@ const STATE = {
   evNote: "",
   authMode: "login",
   reserved: [],
-  booked: [],
   scores: {},
   voted: [],
-  questions: [
-    {
-      id: 1,
-      name: "Kai Vance",
-      team: "NeuralPulse",
-      time: "10:14 AM",
-      pinned: true,
-      votes: 42,
-      text: "How do you handle latency jitter when streaming tool-call arguments concurrently across a distributed swarm of sub-agents?",
-    },
-    {
-      id: 2,
-      name: "Mei Lin",
-      team: "BioSynapse",
-      time: "10:22 AM",
-      pinned: false,
-      votes: 29,
-      text: "Can we use speculative decoding directly against multi-modal video streams, or is the KV-cache invalidation too prohibitive?",
-    },
-    {
-      id: 3,
-      name: "Alex Thorne",
-      team: "ZeroProof",
-      time: "10:35 AM",
-      pinned: false,
-      votes: 18,
-      text: "What is the benchmark overhead for runtime safety filtering when generating streaming code tokens at 80 tokens/sec?",
-    },
-  ],
+  questions: [],
   // Temporary values used while the page is open.
   sessionSignature: "", // Used to know when the session list changed.
   wasFrozen: null,
@@ -354,6 +191,7 @@ const STATE = {
   bannerShrink: 0.2, // Read from CSS when the app starts.
   pixelPalette: [], // Colours used for the pixel effect.
 };
+STATE.eventId = STATE.events[0]?.id || "";
 
 
 /* ==========================================================================
@@ -384,7 +222,6 @@ const DOM = {
   get broadcastMessage() { return byId("broadcastMessage"); },
   get authForm() { return byId("authForm"); },
   get authError() { return byId("authError"); },
-  get authCodeBox() { return byId("authCodeBox"); },
   get eventForm() { return byId("eventForm"); },
   get eventError() { return byId("eventError"); },
   get keyForm() { return byId("keyForm"); },
@@ -402,7 +239,6 @@ const DOM = {
     qaClose: () => document.querySelector(".qa__close"),
     sessionCard: (id) => document.querySelector(`.session[data-session-id="${id}"]`),
     sessionTime: (card) => card.querySelector(".session__time"),
-    authField: (name) => document.querySelector(`#authForm [name="${name}"]`),
   },
 };
 
@@ -451,11 +287,14 @@ function dateRange(a, b) {
 function loadEvents() {
   try {
     const raw = localStorage.getItem(CONFIG.storage.events);
-    if (raw) return JSON.parse(raw);
+    if (raw) {
+      const saved = JSON.parse(raw);
+      if (Array.isArray(saved)) return saved.filter((event) => event && event.custom === true && typeof event.id === "string");
+    }
   } catch (e) {
     /* storage blocked */
   }
-  return DEFAULT_EVENTS;
+  return [];
 }
 function saveEvents() {
   try {
@@ -467,7 +306,8 @@ function saveEvents() {
 function loadKeynotes() {
   try {
     const r = JSON.parse(localStorage.getItem(CONFIG.storage.keynotes));
-    if (r && typeof r === "object") return { add: r.add || [], del: r.del || [], mod: r.mod || {} };
+    if (r && typeof r === "object" && Array.isArray(r.add))
+      return { add: r.add, del: [], mod: {} };
   } catch (e) {
     /* storage blocked */
   }
@@ -481,17 +321,17 @@ function saveKeynotes() {
   }
 }
 function updateEvent(patch) {
-  Object.assign(currentEvent(), patch);
+  const event = currentEvent();
+  if (!event) return false;
+  Object.assign(event, patch);
   saveEvents();
+  return true;
 }
 
-// Built-in sessions can be edited or deleted too: that is saved as "mod" (changes) and "del" (hidden ids).
-const allSessions = () => [
-  ...DEFAULT_SESSIONS.filter((s) => !STATE.keynotes.del.includes(s.id)).map((s) => ({ ...s, ...(STATE.keynotes.mod[s.id] || {}) })),
-  ...STATE.keynotes.add,
-];
+const allSessions = () => STATE.keynotes.add;
 // Sessions still to come or happening now, for the chosen event and topic pill.
 const sessionsNow = () => {
+  if (!currentEvent()) return [];
   const now = Date.now(),
     topic = (STATE.topic || "").toLowerCase();
   return allSessions()
@@ -501,18 +341,17 @@ const sessionsNow = () => {
 };
 const sessionsSignature = () => sessionsNow().map((s) => s.id + (s.live ? "L" : "")).join();
 
-/* ---- ACCOUNTS (DEMO): sign-up and login happen inside the browser ----
+/* ---- ACCOUNTS: sign-up and login happen inside the browser ----
    A person's role comes from the account they registered with. It cannot be changed afterwards.
-   LATER: replace this block with calls to a real backend. A real site must never keep passwords in the browser. */
+   The password is stored as a hash; production authentication should use a backend. */
 // Turns a password into a scrambled fingerprint, so the plain password is never stored.
 async function fingerprint(email, pass) {
   const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(email.toLowerCase() + ":" + pass));
   return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("");
 }
-const isDemoAccount = (a) => DEMO_ACCOUNTS.some((d) => d.email === a.email);
 function saveAccounts() {
   try {
-    localStorage.setItem(CONFIG.storage.accounts, JSON.stringify(STATE.accounts.filter((a) => !isDemoAccount(a))));
+    localStorage.setItem(CONFIG.storage.accounts, JSON.stringify(STATE.accounts));
   } catch (e) {
     /* storage blocked */
   }
@@ -522,6 +361,7 @@ function signIn(user) {
   STATE.user = user;
   STATE.role = user.role;
   STATE.loggedIn = true;
+  clearGuestAccess();
   if (!window.location.pathname.toLowerCase().endsWith("team-directory.html")) {
     const hashPage = window.location.hash.replace(/^#/, "");
     STATE.page = hashPage && MENU.some((item) => item.id === hashPage) ? hashPage : "live";
@@ -545,6 +385,15 @@ function signOut() {
     /* ignore */
   }
 }
+function isGuestAccess() {
+  return new URLSearchParams(window.location.search).get("access") === "guest";
+}
+function clearGuestAccess() {
+  if (!isGuestAccess()) return;
+  const url = new URL(window.location.href);
+  url.searchParams.delete("access");
+  window.history.replaceState(null, "", url.pathname + url.search + url.hash);
+}
 async function initAccounts() {
   let saved = [];
   try {
@@ -552,10 +401,11 @@ async function initAccounts() {
   } catch (e) {
     /* ignore */
   }
-  const demo = await Promise.all(
-    DEMO_ACCOUNTS.map(async (d) => ({ ...d, key: await fingerprint(d.email, CONFIG.demoPassword) })),
-  );
-  STATE.accounts = [...demo, ...saved];
+  STATE.accounts = Array.isArray(saved)
+    ? saved.filter((account) => account && typeof account.email === "string")
+    : [];
+  saveAccounts();
+  if (isGuestAccess()) return;
   try {
     const user = STATE.accounts.find((a) => a.email === localStorage.getItem(CONFIG.storage.session));
     if (user) signIn(user); // keep people signed in after a refresh
@@ -580,8 +430,6 @@ async function handleAuth(form) {
     if (register) {
       if (found) return showError(form, err, "That email already has an account. Please log in instead.");
       const role = SIGNUP_ROLES.includes(f.get("role")) ? f.get("role") : "attendee";
-      if (role === "superadmin" && (f.get("code") || "").trim() !== CONFIG.adminCode)
-        return showError(form, err, "That Super Admin access code is not right.");
       const user = { email, name, role, key };
       STATE.accounts.push(user);
       saveAccounts();
@@ -603,9 +451,12 @@ async function handleAuth(form) {
 // Drawing rule: keep data-action and data-change names the same as the names used in onClick and onChange.
 function drawSidebar() {
   const name = STATE.loggedIn ? STATE.user.name : "Guest";
+  const eventOptions = STATE.events.length
+    ? STATE.events.map((x) => `<option value="${x.id}"${x.id === STATE.eventId ? " selected" : ""}>${esc(x.short)}</option>`).join("")
+    : '<option value="" selected disabled>No events yet</option>';
   DOM.sidebar.innerHTML = `<div class="sidebar__logo"><img class="sidebar__logo-img" src="${CONFIG.logoSrc}" alt="Limpopo Dev Ecosystem"></div>
     <div class="sidebar__user"><span class="sidebar__avatar" aria-hidden="true">${esc(name.charAt(0).toUpperCase())}</span><span class="sidebar__text"><b class="sidebar__name">${esc(name)}</b><small class="sidebar__role">${ROLES[STATE.role]}</small></span></div>
-    <div class="sidebar__main"><div class="sidebar__event">${svg("layers", 20)}<div class="sidebar__text sidebar__text--grow"><span class="sidebar__event-label text-label">Event</span><select class="sidebar__select" data-change="event" aria-label="Choose an event">${STATE.events.map((x) => `<option value="${x.id}"${x.id === STATE.eventId ? " selected" : ""}>${esc(x.short)}</option>`).join("")}</select></div></div></div>
+    <div class="sidebar__main"><div class="sidebar__event">${svg("layers", 20)}<div class="sidebar__text sidebar__text--grow"><span class="sidebar__event-label text-label">Event</span><select class="sidebar__select" data-change="event" aria-label="Choose an event"${STATE.events.length ? "" : " disabled"}>${eventOptions}</select></div></div></div>
     <div class="sidebar__footer">
       <button class="sidebar__item" data-action="theme" aria-label="Switch between light and dark mode"><span class="theme-icon"><span class="theme-icon__glyph theme-icon__glyph--sun">${svg("sun", 20)}</span><span class="theme-icon__glyph theme-icon__glyph--moon">${svg("moon", 20)}</span></span><span class="sidebar__text"><span class="sidebar__switch-text--to-light">Switch to light</span><span class="sidebar__switch-text--to-dark">Switch to dark</span></span></button>
       <button class="sidebar__item" data-action="auth-toggle">${svg(STATE.loggedIn ? "out" : "auth", 20)}<span class="sidebar__text">${STATE.loggedIn ? "Log out" : "Log in / Register"}</span></button>
@@ -627,29 +478,28 @@ function drawNav() {
 }
 
 function drawTop() {
-  const e = currentEvent(),
-    due = new Date(e.dueAt);
+  const e = currentEvent();
   DOM.pageHeader.innerHTML = `<div class="page-header__toolbar"><h2 class="page-header__title">${MENU.find((m) => m.id === STATE.page).label}</h2>
-    <div class="cluster"><span class="pill${withClass(e.open, "pill--ok")}" id="submissionBadge" aria-live="polite">${svg(e.open ? "unlock" : "lock", 12)} ${e.open ? "Submissions open" : "Submissions closed"}</span></div></div>
-    <div class="countdown" id="countdownRow"><div class="countdown__units" id="countdown" role="timer" aria-label="Time left until code freeze"></div>
-    <div class="countdown__target"><span class="countdown__target-label">Time</span><span class="countdown__target-time">${clock24(due)}</span><span class="countdown__target-label countdown__caption" id="freezeCaption">Code freeze</span></div></div>`;
+    <div class="cluster"><span class="pill${withClass(e && e.open, "pill--ok")}" id="submissionBadge" aria-live="polite">${e ? `${svg(e.open ? "unlock" : "lock", 12)} ${e.open ? "Submissions open" : "Submissions closed"}` : "No event published"}</span></div></div>
+    <div class="countdown" id="countdownRow"><div class="countdown__units" id="countdown" role="timer" aria-label="${e ? "Time left until code freeze" : "No event schedule"}"></div>
+    <div class="countdown__target"><span class="countdown__target-label">Time</span><span class="countdown__target-time">${e ? clock24(new Date(e.dueAt)) : "Not scheduled"}</span><span class="countdown__target-label countdown__caption" id="freezeCaption">${e ? "Code freeze" : "No event selected"}</span></div></div>`;
   STATE.wasFrozen = null; // a freshly drawn page never plays the lockdown animation by itself
   tick();
 }
 
 function drawBanner() {
   const e = currentEvent(),
-    custom = !e.image.startsWith("data:"), // the Super Admin can swap in their own photo
+    custom = e && !e.image.startsWith("data:"), // the Super Admin can swap in their own photo
     changeButton = STATE.role === "superadmin" ? `<button class="btn btn--primary banner__action" data-action="nav" data-value="admin">Change program banner</button>` : "";
   DOM.banner.className = "banner";
   DOM.banner.style.setProperty(
     "--banner-image",
-    custom ? `var(--banner-overlay), url("${e.image.replace(/"/g, "%22")}")` : `url("${e.image}")`,
+    e && custom ? `var(--banner-overlay), url("${e.image.replace(/"/g, "%22")}")` : `url("${placeholderBanner()}")`,
   );
-  DOM.banner.innerHTML = `<div class="banner__inner"><div class="banner__top"><span class="banner__chip text-mono">${esc(e.place)}</span>${changeButton}</div>
-    <h1 class="banner__title">${esc(e.name)}</h1>
-    ${e.summary ? `<p class="banner__summary">${esc(e.summary)}</p>` : ""}
-    <div class="cluster"><span class="pill">${esc(e.date)}</span><span class="text-mono">${esc(e.tag)}</span></div></div>`;
+  DOM.banner.innerHTML = `<div class="banner__inner"><div class="banner__top"><span class="banner__chip text-mono">${esc(e ? e.place : "Event workspace")}</span>${changeButton}</div>
+    <h1 class="banner__title">${esc(e ? e.name : "No event has been published")}</h1>
+    ${e ? (e.summary ? `<p class="banner__summary">${esc(e.summary)}</p>` : "") : "<p class=\"banner__summary\">Create an event in the Super Admin console to publish its details.</p>"}
+    <div class="cluster">${e ? `<span class="pill">${esc(e.date)}</span><span class="text-mono">${esc(e.tag)}</span>` : ""}</div></div>`;
   bannerMetrics();
 }
 
@@ -669,6 +519,7 @@ function sessionCard(s) {
 }
 // Show pinned questions first, then show questions with the most votes.
 function qaListHtml() {
+  if (!STATE.questions.length) return '<li class="qa__item empty-state u-text-soft">No questions yet. Be the first to ask.</li>';
   return [...STATE.questions]
     .sort((a, b) => Number(b.pinned) - Number(a.pinned) || b.votes - a.votes)
     .map(
@@ -682,7 +533,9 @@ function qaListHtml() {
 }
 const liveListHtml = () => {
   const list = sessionsNow().filter((s) => STATE.filter === "All" || s.type === STATE.filter);
-  return list.length ? list.map(sessionCard).join("") : '<p class="empty-state u-text-soft">No sessions left in this view.</p>';
+  return list.length
+    ? list.map(sessionCard).join("")
+    : `<p class="empty-state u-text-soft">${STATE.events.length ? "No sessions in this view yet." : "No events have been published yet."}</p>`;
 };
 
 // The Super Admin form for creating an event.
@@ -703,13 +556,14 @@ function eventPanelHtml() {
       <button class="btn btn--primary btn--center">${svg("plus", 17)} Publish event</button>
     </form>
     ${STATE.evNote ? `<p class="notice" role="status">${esc(STATE.evNote)}</p>` : ""}
-    ${mine.length ? `<div><p class="text-label u-text-soft">Events you added</p>${mine.map((x) => `<div class="admin-list__item admin-list__item--event"><span><b>${esc(x.short)}</b> <span class="u-text-soft">${esc(x.date)}</span></span><button class="btn admin-action" type="button" data-action="remove-event" data-value="${x.id}">${svg("trash", 16)} Remove</button></div>`).join("")}</div>` : ""}</section>`;
+    ${mine.length ? `<div><p class="text-label u-text-soft">Published events</p>${mine.map((x) => `<div class="admin-list__item admin-list__item--event"><span><b>${esc(x.short)}</b> <span class="u-text-soft">${esc(x.date)}</span></span><button class="btn admin-action" type="button" data-action="remove-event" data-value="${x.id}">${svg("trash", 16)} Remove</button></div>`).join("")}</div>` : '<p class="empty-state u-text-soft">No events have been published yet.</p>'}</section>`;
 }
 
 // The Super Admin can add, edit, or delete keynotes.
 function keynotePanelHtml() {
-  const e = currentEvent(),
-    now = Date.now(),
+  const e = currentEvent();
+  if (!e) return `<section class="panel panel--narrow admin-grid__item admin-grid__item--keynotes"><div class="admin-section-heading"><span class="admin-section-heading__icon">${svg("mic", 21)}</span><h3>Event program</h3></div><p class="empty-state u-text-soft">Publish an event before adding keynotes.</p></section>`;
+  const now = Date.now(),
     list = allSessions().filter((x) => !x.ev || x.ev === e.id).sort((a, b) => a.start - b.start),
     editing = STATE.editKey ? list.find((x) => x.id === STATE.editKey) : null,
     t0 = Math.ceil(now / 60000) * 60000,
@@ -744,7 +598,10 @@ const cardGrid = (cards, spaced) => `<div class="card-grid${withClass(spaced, "c
 
 const directoryStorage = {
   get(key) {
-    try { return JSON.parse(localStorage.getItem(key) || "[]"); } catch { return []; }
+    try {
+      const value = JSON.parse(localStorage.getItem(key) || "[]");
+      return Array.isArray(value) ? value : [];
+    } catch { return []; }
   },
   set(key, value) {
     try { localStorage.setItem(key, JSON.stringify(value)); return true; } catch { return false; }
@@ -756,15 +613,13 @@ const directoryMembers = () => directoryStorage.get("geekulchaExtraMembers").fil
 function teamDirectoryHtml() {
   const teams = directoryTeams(),
     members = directoryMembers(),
+    event = currentEvent(),
     broadcastDismissed = (() => {
       try { return localStorage.getItem("geekulchaBroadcastDismissed") === "1"; } catch { return false; }
     })(),
-    teamCount = 4 + teams.length,
-    memberCount = 7 + members.length,
+    teamCount = teams.length,
+    memberCount = members.length,
     savedTeams = [
-      `<article class="team-row"><span class="team-badge badge-one">01</span><div><h4>Registration &amp; Login</h4><p>Lisa Erasmus</p><small>Registration and login page</small></div><span class="team-status">Design</span></article>`,
-      `<article class="team-row"><span class="team-badge badge-two">02</span><div><h4>Live Programme</h4><p>Nkosinathi Maseko · Lesedi Makhatha</p><small>Programme framework and live event page</small></div><span class="team-status">Building</span></article>`,
-      `<article class="team-row"><span class="team-badge badge-three">03</span><div><h4>Security &amp; Research</h4><p>Dewald Jordan · Ntsako Kekae</p><small>IDS, database encryption and OWASP Top 10 research</small></div><span class="team-status">Research</span></article>`,
       ...teams.map((team) => `<article class="team-row"><span class="team-badge badge-one">${String(team.number).padStart(2, "0")}</span><div><h4>${esc(team.name)}</h4><p>Project team</p><small>${esc(team.role)}</small></div><button class="remove-entry" type="button" data-action="directory-remove-team" data-value="${esc(team.number)}">Remove</button></article>`),
       ...members.map((member) => `<article class="team-row"><span class="team-badge badge-three">${esc(member.name.split(/\s+/).map((p) => p[0]).join("").slice(0, 2).toUpperCase())}</span><div><h4>${esc(member.name)}</h4><p>${esc(member.team)} · ${esc(member.role)}</p><small>Team member</small></div><button class="remove-entry" type="button" data-action="directory-remove-member" data-value="${esc(member.name)}">Remove</button></article>`),
     ].join("");
@@ -772,7 +627,7 @@ function teamDirectoryHtml() {
   return `<div class="directory-hub">
     <section class="directory-welcome">
       <div><p class="directory-eyebrow">GEEKULCHA · PROJECT WORKSPACE</p><h1>Team directory<span>.</span></h1><p class="directory-subheading">Meet the people, follow the updates and find the tools that help us build together.</p></div>
-      <div class="directory-welcome-mark" aria-hidden="true"><span>G</span><i>04</i></div>
+      <div class="directory-welcome-mark" aria-hidden="true"><span>G</span><i>${String(teamCount).padStart(2, "0")}</i></div>
     </section>
     <section class="directory-stats" aria-label="Workspace overview">
       <article><span class="directory-stat-icon">${svg("teams", 18)}</span><div><strong>${teamCount}</strong><small>Project teams</small></div></article>
@@ -782,15 +637,11 @@ function teamDirectoryHtml() {
     <div class="directory-main-grid">
       <div class="directory-primary">
         <section class="directory-panel" id="directory">
-          <div class="directory-section-heading"><div><p class="directory-eyebrow">YOUR MAIN WORK AREA</p><h2>Team 4 <span>— Directory</span></h2></div><span class="directory-pill directory-pill--accent">Your team</span></div>
+          <div class="directory-section-heading"><div><p class="directory-eyebrow">WORKSPACE DIRECTORY</p><h2>Project teams</h2></div><span class="directory-pill directory-pill--accent">${teamCount} teams</span></div>
           <p class="directory-section-intro">We make it easy for everyone to know who is involved, what each team does and who to contact.</p>
-          <div class="directory-featured-members">
-            <article><span class="directory-avatar directory-avatar--red">SM</span><div><h3>Sinethemba Malinga</h3><p>Directory coordinator</p><small>Team directory · Team 4</small></div></article>
-            <article><span class="directory-avatar directory-avatar--amber">EC</span><div><h3>Ethan Carelse</h3><p>Directory coordinator</p><small>Team directory · Team 4</small></div></article>
-          </div>
           <div class="directory-focus">${svg("spark", 18)}<p><strong>Our focus</strong><br>Keep the directory clear and up to date, show each team's responsibilities, and make the workspace welcoming for people who are new to technology.</p></div>
           <div class="directory-subheading"><h3>All project teams</h3><span id="directory-member-label">${memberCount} people · ${teamCount} teams</span></div>
-          <div class="directory-other-teams">${savedTeams}</div>
+          <div class="directory-other-teams">${savedTeams || '<p class="empty-state u-text-soft">No teams or members have been added yet.</p>'}</div>
           <div class="directory-actions"><button class="directory-button directory-button--primary" type="button" data-action="directory-open-team">＋ Register a team</button><button class="directory-button directory-button--secondary" type="button" data-action="directory-open-member">＋ Add a member</button></div>
         </section>
         <section class="directory-panel" id="directory-resources">
@@ -798,20 +649,18 @@ function teamDirectoryHtml() {
           <div class="directory-resource-list">
             <a href="https://developer.mozilla.org/en-US/docs/Learn" target="_blank" rel="noopener"><span class="directory-resource-icon directory-resource-icon--violet">⌘</span><span><strong>MDN Web Docs</strong><small>Beginner-friendly lessons for HTML, CSS and JavaScript.</small></span><b>↗</b></a>
             <a href="https://www.w3schools.com/" target="_blank" rel="noopener"><span class="directory-resource-icon directory-resource-icon--green">W3</span><span><strong>W3Schools</strong><small>Simple examples to practise web development basics.</small></span><b>↗</b></a>
-            <a href="https://owasp.org/www-project-top-ten/" target="_blank" rel="noopener"><span class="directory-resource-icon directory-resource-icon--amber">OW</span><span><strong>OWASP Top 10</strong><small>Common web application security risks for Team 3.</small></span><b>↗</b></a>
+            <a href="https://owasp.org/www-project-top-ten/" target="_blank" rel="noopener"><span class="directory-resource-icon directory-resource-icon--amber">OW</span><span><strong>OWASP Top 10</strong><small>Common web application security risks.</small></span><b>↗</b></a>
             <a href="https://docs.github.com/en/get-started" target="_blank" rel="noopener"><span class="directory-resource-icon directory-resource-icon--dark">⌘</span><span><strong>GitHub Guides</strong><small>Learn how to save code and collaborate as a team.</small></span><b>↗</b></a>
             <a href="https://code.visualstudio.com/docs" target="_blank" rel="noopener"><span class="directory-resource-icon directory-resource-icon--violet">VS</span><span><strong>Visual Studio Code</strong><small>Editor setup, extensions and beginner documentation.</small></span><b>↗</b></a>
           </div>
         </section>
       </div>
       <aside class="directory-side">
-        <section class="directory-panel directory-broadcast${broadcastDismissed ? " is-hidden" : ""}" id="directory-broadcast"><div class="directory-broadcast-heading"><span class="directory-live-dot"></span><p class="directory-eyebrow">PINNED BROADCAST</p><button class="directory-icon-button" type="button" data-action="directory-dismiss-broadcast" aria-label="Dismiss broadcast">×</button></div><h2>Welcome to the Geekulcha workspace</h2><p>Check the notice board for the event schedule, keep your team details up to date and use the shared resources when you need a hand.</p><div class="directory-broadcast-footer"><span>Workspace announcement</span><span>Stays until dismissed</span></div></section>
+        ${event && event.note && !broadcastDismissed ? `<section class="directory-panel directory-broadcast" id="directory-broadcast"><div class="directory-broadcast-heading"><span class="directory-live-dot"></span><p class="directory-eyebrow">PINNED BROADCAST</p><button class="directory-icon-button" type="button" data-action="directory-dismiss-broadcast" aria-label="Dismiss broadcast">×</button></div><h2>Event update</h2><p>${esc(event.note)}</p><div class="directory-broadcast-footer"><span>Organizer announcement</span><span>Stays until dismissed</span></div></section>` : ""}
         <section class="directory-panel" id="directory-notice-board"><div class="directory-section-heading"><div><p class="directory-eyebrow">KEEP AN EYE ON</p><h2>Notice board</h2></div><span class="directory-pill">Schedule</span></div><p class="directory-notice-intro">Key event moments and working times in one place.</p><div class="directory-schedule">
-          <article><div class="directory-time">08:00 – 09:30</div><span class="directory-timeline-dot"></span><div><strong>Hacker registration &amp; swag badge pickup</strong><small>Participant check-in and badge collection.</small></div></article>
-          <article><div class="directory-time">Time TBC</div><span class="directory-timeline-dot"></span><div><strong>Kickoff breakfast &amp; espresso fuel bar</strong><small>Breakfast opens for participants; settle in and get ready to start.</small></div></article>
-          <article><div class="directory-time">Time TBC</div><span class="directory-timeline-dot"></span><div><strong>Sponsor power lunch</strong><small>Lunch break and time to connect with sponsors.</small></div></article>
-        </div><p class="directory-schedule-footnote">“Time TBC” means the exact time still needs to be confirmed by the organiser.</p></section>
-        <section class="directory-panel directory-help"><span class="directory-help-icon">${svg("mentors", 20)}</span><div><strong>Need a hand?</strong><p>Tell us what you need and we will connect you with a mentor.</p></div><button class="directory-button directory-button--primary" type="button" data-action="directory-open-help">Request</button></section>
+          <p class="empty-state u-text-soft">No schedule items have been published yet.</p>
+        </div></section>
+        <section class="directory-panel directory-help"><span class="directory-help-icon">${svg("mentors", 20)}</span><div><strong>Need a hand?</strong><p>Mentor listings will appear here when available.</p></div><button class="directory-button directory-button--primary" type="button" data-action="directory-open-help">Request</button></section>
       </aside>
     </div>
     ${directoryDialogsHtml()}
@@ -820,13 +669,14 @@ function teamDirectoryHtml() {
 }
 
 function directoryDialogsHtml() {
+  const teams = directoryTeams();
   return `<dialog class="directory-dialog" id="directoryTeamDialog"><form id="directoryTeamForm" method="dialog">
       <div class="directory-dialog-heading"><div><p class="directory-eyebrow">WORKSPACE DIRECTORY</p><h2>Register a team</h2></div><button type="button" class="directory-icon-button" data-action="directory-close-dialog" aria-label="Close">×</button></div>
       <label>Team name<input name="teamName" required placeholder="e.g. Design team"></label><label>Team number<input name="teamNumber" required type="number" min="1" max="99" placeholder="e.g. 5"></label><label>Team responsibility<textarea name="teamRole" required rows="3" placeholder="What will this team work on?"></textarea></label><p class="directory-form-error" id="directoryTeamError" role="alert"></p><div class="directory-dialog-actions"><button type="button" class="directory-button directory-button--secondary" data-action="directory-close-dialog">Cancel</button><button class="directory-button directory-button--primary" type="submit">Save team</button></div><p class="directory-form-note">Saved in this browser only.</p>
     </form></dialog>
     <dialog class="directory-dialog" id="directoryMemberDialog"><form id="directoryMemberForm" method="dialog">
       <div class="directory-dialog-heading"><div><p class="directory-eyebrow">WORKSPACE DIRECTORY</p><h2>Add a member</h2></div><button type="button" class="directory-icon-button" data-action="directory-close-dialog" aria-label="Close">×</button></div>
-      <label>Full name<input name="memberName" required placeholder="Enter their full name"></label><label>Team<select name="memberTeam" required><option value="">Choose a team</option><option>Team 1</option><option>Team 2</option><option>Team 3</option><option>Team 4</option></select></label><label>Role<input name="memberRole" required placeholder="e.g. Front-end developer"></label><div class="directory-dialog-actions"><button type="button" class="directory-button directory-button--secondary" data-action="directory-close-dialog">Cancel</button><button class="directory-button directory-button--primary" type="submit">Add member</button></div><p class="directory-form-note">Saved in this browser only.</p>
+      <label>Full name<input name="memberName" required placeholder="Enter their full name"></label><label>Team<select name="memberTeam" required${teams.length ? "" : " disabled"}><option value="" selected disabled>${teams.length ? "Choose a team" : "Register a team first"}</option>${teams.map((team) => `<option>${esc(team.name)}</option>`).join("")}</select></label><label>Role<input name="memberRole" required placeholder="e.g. Front-end developer"></label><div class="directory-dialog-actions"><button type="button" class="directory-button directory-button--secondary" data-action="directory-close-dialog">Cancel</button><button class="directory-button directory-button--primary" type="submit"${teams.length ? "" : " disabled"}>Add member</button></div><p class="directory-form-note">Saved in this browser only.</p>
     </form></dialog>
     <dialog class="directory-dialog" id="directoryHelpDialog"><form id="directoryHelpForm" method="dialog">
       <div class="directory-dialog-heading"><div><p class="directory-eyebrow">NEED HELP?</p><h2>Request help</h2></div><button type="button" class="directory-icon-button" data-action="directory-close-dialog" aria-label="Close">×</button></div>
@@ -839,47 +689,41 @@ function directoryDialogsHtml() {
       ].map(([id, label, hint]) => `<label><input type="radio" name="kind" value="${id}" required><span><strong>${label}</strong><small>${hint}</small></span></label>`).join("")}</div></fieldset>
       <label>What is happening? (optional)<textarea name="details" rows="3" placeholder="A short description helps the mentor prepare."></textarea></label><p class="directory-form-error" id="directoryHelpError" role="alert"></p><div class="directory-dialog-actions"><button type="button" class="directory-button directory-button--secondary" data-action="directory-close-dialog">Cancel</button><button class="directory-button directory-button--primary" type="submit">Find a mentor</button></div>
     </form></dialog>
-    <dialog class="directory-dialog" id="directoryMentorDialog"><div class="directory-dialog-body"><div class="directory-dialog-heading"><div><p class="directory-eyebrow">MENTOR MATCHED</p><h2>A mentor can help you</h2></div><button type="button" class="directory-icon-button" data-action="directory-close-dialog" aria-label="Close">×</button></div><article class="directory-featured-person"><span class="directory-avatar directory-avatar--red" id="directoryMentorAvatar">TM</span><div><h3 id="directoryMentorName">Directory coordinator</h3><p id="directoryMentorRole">Mentor</p></div></article><p id="directoryMentorSummary" class="directory-mentor-summary"></p><p class="directory-mentor-hint">Ask an organiser in person while demo mentor email is pending.</p><div class="directory-dialog-actions"><button type="button" class="directory-button directory-button--secondary" data-action="directory-close-dialog">Close</button></div></div></dialog>`;
+    <dialog class="directory-dialog" id="directoryMentorDialog"><div class="directory-dialog-body"><div class="directory-dialog-heading"><div><p class="directory-eyebrow">MENTOR SUPPORT</p><h2>No mentors are listed yet</h2></div><button type="button" class="directory-icon-button" data-action="directory-close-dialog" aria-label="Close">×</button></div><p id="directoryMentorSummary" class="directory-mentor-summary"></p><p class="directory-mentor-hint">Contact an event organiser to request support.</p><div class="directory-dialog-actions"><button type="button" class="directory-button directory-button--secondary" data-action="directory-close-dialog">Close</button></div></div></dialog>`;
 }
 // This list chooses which page HTML to show.
 const PAGES = {
   live: () => `<div class="live-program"><section>
-    <div class="cluster cluster--center" role="group" aria-label="Filter sessions by topic">${currentEvent().tracks.map((t) => `<button type="button" class="pill pill--button${withClass(STATE.topic === t, CLS.active)}" aria-pressed="${STATE.topic === t}" data-action="topic" data-value="${esc(t)}">${esc(t)}</button>`).join("")}</div>
+    ${currentEvent() ? `<div class="cluster cluster--center" role="group" aria-label="Filter sessions by topic">${currentEvent().tracks.map((t) => `<button type="button" class="pill pill--button${withClass(STATE.topic === t, CLS.active)}" aria-pressed="${STATE.topic === t}" data-action="topic" data-value="${esc(t)}">${esc(t)}</button>`).join("")}</div>` : ""}
     <div class="tabs tabs--center" role="group" aria-label="Filter sessions by type">${TYPES.map((t) => `<button class="tab${withClass(STATE.filter === t, CLS.active)}" aria-pressed="${STATE.filter === t}" data-action="filter" data-value="${t}">${t}</button>`).join("")}</div>
     ${STATE.notice ? `<p class="notice" role="status">${STATE.notice}</p>` : ""}${liveListHtml()}</section></div>`,
 
   mentors: () =>
-    `<p class="u-text-soft u-mt-20">Book 20 minutes with an expert.</p>` +
-    cardGrid(
-      MENTORS.map(([n, skill]) => {
-        const booked = STATE.booked.includes(n);
-        return `<article class="info-card"><h3 class="info-card__title">${n}</h3><p class="info-card__text u-text-soft">${skill}</p>
-      <button class="rsvp-button${withClass(booked, CLS.done)}" data-action="book" data-value="${n}">${svg("cal", 16)} ${booked ? "Booked. Tap to cancel" : "Book 20 minutes"}</button>
-      </article>`;
-      }).join(""),
-    ),
+    `<p class="u-text-soft u-mt-20">Mentor sessions will appear here when available.</p>` +
+    '<p class="empty-state u-text-soft">No mentors are listed yet.</p>',
 
   teams: () => teamDirectoryHtml(),
 
-  notices: () =>
-    cardGrid(
-      NOTICES.map(([t, b]) => `<article class="info-card"><h3 class="info-card__title">${t}</h3><p class="info-card__text u-text-soft">${b}</p></article>`).join(""),
-      true,
-    ),
+  notices: () => '<p class="empty-state u-text-soft">No notices have been published yet.</p>',
 
   judging: () =>
     `<p class="u-text-soft u-mt-20">Give each team a score from 0 to 10.</p>` +
-    cardGrid(
-      TEAMS.map(
-        ([n]) => `<article class="info-card"><h3 class="info-card__title">${n}</h3><label class="score-row">Score<input class="input score-row__input" type="number" min="0" max="10" data-score="${n}" value="${STATE.scores[n] ?? ""}"></label></article>`,
-      ).join(""),
-    ),
+    '<p class="empty-state u-text-soft">No teams are available to score yet.</p>',
 
   admin: () => {
     const e = currentEvent();
-    const programSessions = allSessions().filter((session) => !session.ev || session.ev === e.id).length;
+    const programSessions = e ? allSessions().filter((session) => session.ev === e.id).length : 0;
     const managedEvents = STATE.events.length;
-    const submissionState = e.open ? "Open" : "Closed";
+    const submissionState = e ? (e.open ? "Open" : "Closed") : "Not configured";
+    const settings = e
+      ? `<section class="panel panel--narrow admin-grid__item admin-grid__item--settings"><div class="admin-section-heading"><span class="admin-section-heading__icon">${svg("admin", 21)}</span><h3>Program settings</h3></div><p class="u-text-soft">Changes apply to: <strong class="u-text-strong">${esc(e.short)}</strong></p>
+    <label class="field">Banner image URL<input class="input" id="bannerImageInput" placeholder="https://example.com/banner.jpg" value="${e.image.startsWith("data:") ? "" : esc(e.image)}"></label>
+    <div><button class="btn btn--primary" data-action="update-banner">${svg("image", 17)} Update banner</button></div>
+    <label class="field">Code freeze (date and time)<input class="input" type="datetime-local" data-change="due" value="${toLocalInput(new Date(e.dueAt).getTime())}"></label>
+    <label class="field">Broadcast message (shown in the red bar)<input class="input" id="broadcastNoteInput" placeholder="Leave empty for the automatic countdown message" value="${esc(e.note || "")}"></label>
+    <div><button class="btn btn--primary" data-action="update-note">${svg("send", 17)} Update message</button></div>
+    <label class="field field--check"><input class="input input--check" type="checkbox" data-change="open"${e.open ? " checked" : ""}> Submissions are open</label>${STATE.notice ? `<p class="notice" role="status">${STATE.notice}</p>` : ""}</section>`
+      : `<section class="panel panel--narrow admin-grid__item admin-grid__item--settings"><div class="admin-section-heading"><span class="admin-section-heading__icon">${svg("admin", 21)}</span><h3>Program settings</h3></div><p class="empty-state u-text-soft">Publish an event to configure its banner, code freeze and submissions.</p></section>`;
     return `<section class="admin-hero" aria-label="Super Admin Console overview">
       <div class="admin-hero__copy">
         <span class="admin-hero__eyebrow">EVENT OPERATIONS</span>
@@ -888,8 +732,8 @@ const PAGES = {
       </div>
       <aside class="admin-hero__event" aria-label="Managing event">
         <span class="admin-hero__label">MANAGING EVENT</span>
-        <strong>${esc(e.short)}</strong>
-        <span class="admin-hero__status${withClass(e.open, "is-open")}">${svg(e.open ? "unlock" : "lock", 12)} SUBMISSIONS ${submissionState.toUpperCase()}</span>
+        <strong>${esc(e ? e.short : "No event selected")}</strong>
+        <span class="admin-hero__status${withClass(e && e.open, "is-open")}">${e ? svg(e.open ? "unlock" : "lock", 12) + " SUBMISSIONS " : ""}${submissionState.toUpperCase()}</span>
       </aside>
       <div class="admin-hero__metrics">
         <article class="admin-metric">
@@ -904,18 +748,12 @@ const PAGES = {
         </article>
         <article class="admin-metric">
           <span class="admin-metric__label">SUBMISSION STATUS</span>
-          <strong class="${e.open ? "u-text-ok" : "u-text-accent"}">${submissionState}</strong>
-          <span>For ${esc(e.short)}</span>
+          <strong class="${e && e.open ? "u-text-ok" : "u-text-accent"}">${submissionState}</strong>
+          <span>${e ? `For ${esc(e.short)}` : "Publish an event to configure status"}</span>
         </article>
       </div>
     </section>
-    <div class="admin-grid"><section class="panel panel--narrow admin-grid__item admin-grid__item--settings"><div class="admin-section-heading"><span class="admin-section-heading__icon">${svg("admin", 21)}</span><h3>Program settings</h3></div><p class="u-text-soft">Changes apply to: <strong class="u-text-strong">${esc(e.short)}</strong></p>
-    <label class="field">Banner image URL<input class="input" id="bannerImageInput" placeholder="https://example.com/banner.jpg" value="${e.image.startsWith("data:") ? "" : esc(e.image)}"></label>
-    <div><button class="btn btn--primary" data-action="update-banner">${svg("image", 17)} Update banner</button></div>
-    <label class="field">Code freeze (date and time)<input class="input" type="datetime-local" data-change="due" value="${toLocalInput(new Date(e.dueAt).getTime())}"></label>
-    <label class="field">Broadcast message (shown in the red bar)<input class="input" id="broadcastNoteInput" placeholder="Leave empty for the automatic countdown message" value="${esc(e.note || "")}"></label>
-    <div><button class="btn btn--primary" data-action="update-note">${svg("send", 17)} Update message</button></div>
-    <label class="field field--check"><input class="input input--check" type="checkbox" data-change="open"${e.open ? " checked" : ""}> Submissions are open</label>${STATE.notice ? `<p class="notice" role="status">${STATE.notice}</p>` : ""}</section>${keynotePanelHtml()}${eventPanelHtml()}</div>`;
+    <div class="admin-grid">${settings}${keynotePanelHtml()}${eventPanelHtml()}</div>`;
   },
 
   auth: () => {
@@ -936,19 +774,11 @@ const PAGES = {
     ${
       register
         ? `<label class="field">I am joining as<select class="input" name="role">${SIGNUP_ROLES.map((id) => `<option value="${id}">${ROLES[id]}</option>`).join("")}</select>
-      </label><label class="field is-hidden" id="authCodeBox">Super Admin access code<input class="input" name="code" autocomplete="off">
-      </label><p class="form__hint">Your role is set when you register and cannot be changed later. Super Admin needs the organizer access code (demo code: ${CONFIG.adminCode}).</p>`
+      </label><p class="form__hint">Your role is set when you register and cannot be changed later.</p>`
         : ""
     }
     <p class="form__error" id="authError" role="alert"></p><button class="btn btn--primary btn--center">${register ? "Create account" : "Log in"}</button>
-      </form>
-    ${
-      register
-        ? ""
-        : `<div><p class="text-label u-text-soft">Demo accounts (password ${CONFIG.demoPassword})</p>
-      <div class="cluster">${DEMO_ACCOUNTS.map((d) => `<button class="tab" type="button" data-action="demo" data-value="${d.email}">${ROLES[d.role]}</button>`).join("")}</div>
-      </div>`
-    }</section>`;
+      </form></section>`;
   },
 };
 
@@ -1039,10 +869,10 @@ function collapse(el) {
 function paintFreeze(left, animate) {
   const row = DOM.countdownRow,
     badge = DOM.submissionBadge,
-    caption = DOM.freezeCaption;
-  if (!row || !badge || !caption) return;
+    caption = DOM.freezeCaption,
+    e = currentEvent();
+  if (!row || !badge || !caption || !e) return;
   const frozen = left <= 0,
-    e = currentEvent(),
     mode = frozen ? "f" : e.open ? "o" : "c",
     label = frozen ? "FROZEN // LOCKED" : "Code freeze";
   row.classList.toggle(CLS.warning, left > 0 && left <= CONFIG.freeze.warnSeconds);
@@ -1086,8 +916,23 @@ function paintFreeze(left, animate) {
   } else if (!STATE.freezeBusy) show(row, false); // The countdown is already frozen.
 }
 function tick() {
-  const e = currentEvent(),
-    left = Math.max(0, Math.floor((new Date(e.dueAt) - Date.now()) / 1000)),
+  const e = currentEvent();
+  if (!e) {
+    STATE.wasFrozen = null;
+    if (DOM.broadcastMessage) DOM.broadcastMessage.textContent = "No event updates yet.";
+    if (DOM.submissionBadge) {
+      DOM.submissionBadge.className = "pill";
+      DOM.submissionBadge.textContent = "No event published";
+    }
+    if (DOM.countdownRow) {
+      DOM.countdownRow.classList.remove(CLS.warning, CLS.frozen, CLS.hidden, CLS.dissolving, CLS.collapsing, CLS.collapsed);
+      DOM.countdownRow.style.removeProperty("--collapse-height");
+    }
+    if (DOM.countdown) DOM.countdown.innerHTML = '<p class="empty-state u-text-soft">No event schedule</p>';
+    if (DOM.freezeCaption) DOM.freezeCaption.textContent = "No event selected";
+    return;
+  }
+  const left = Math.max(0, Math.floor((new Date(e.dueAt) - Date.now()) / 1000)),
     frozen = left <= 0,
     justFroze = STATE.wasFrozen === false && frozen; // only the tick that crosses zero plays the animation
   if (DOM.broadcastMessage)
@@ -1242,6 +1087,7 @@ function handleEvent(form) {
     tracks: f.get("tracks").split(",").map((t) => t.trim()).filter(Boolean).slice(0, 8),
   };
   STATE.events.push(created);
+  STATE.eventId = created.id;
   saveEvents();
   STATE.evNote = `${short} is published for ${created.date}. It is now in the event switcher in the sidebar.`;
   drawAll();
@@ -1273,8 +1119,7 @@ function handleKeynote(form) {
     kn = STATE.keynotes;
   if (STATE.editKey) {
     const id = STATE.editKey;
-    if (DEFAULT_SESSIONS.some((d) => d.id === id)) kn.mod[id] = fields;
-    else kn.add = kn.add.map((x) => (x.id === id ? { ...x, ...fields } : x));
+    kn.add = kn.add.map((x) => (x.id === id ? { ...x, ...fields } : x));
   } else kn.add.push({ id: Date.now(), ev: STATE.eventId, custom: true, ...fields });
   saveKeynotes();
   STATE.keyNote =
@@ -1302,7 +1147,7 @@ function handleDirectoryTeam(form) {
     return;
   }
   const teams = directoryTeams();
-  if ([1, 2, 3, 4].includes(number) || teams.some((team) => Number(team.number) === number)) {
+  if (teams.some((team) => Number(team.number) === number)) {
     error.textContent = `Team ${number} already exists. Please choose a different number.`;
     return;
   }
@@ -1330,25 +1175,12 @@ function handleDirectoryMember(form) {
 function handleDirectoryHelp(form) {
   const data = new FormData(form);
   const who = String(data.get("who") || "").trim();
-  const kind = data.get("kind");
-  const details = String(data.get("details") || "").trim();
   const error = byId("directoryHelpError");
-  if (!who || !kind) {
+  if (!who || !data.get("kind")) {
     error.textContent = "Please add your name and choose a type of help.";
     return;
   }
-  const types = {
-    tech: ["Technical mentor", "Technical / coding"],
-    reg: ["Registration mentor", "Registration & login"],
-    live: ["Programme mentor", "Live programme"],
-    security: ["Security mentor", "Security & research"],
-    other: ["Directory coordinator", "Something else"],
-  };
-  const [name, label] = types[kind] || types.other;
-  byId("directoryMentorAvatar").textContent = name.split(/\s+/).map((part) => part[0]).join("").slice(0, 2).toUpperCase();
-  byId("directoryMentorName").textContent = name;
-  byId("directoryMentorRole").textContent = `Mentor · ${label}`;
-  byId("directoryMentorSummary").textContent = `${who}, you asked for help with: ${label}.${details ? ` "${details}"` : ""}`;
+  byId("directoryMentorSummary").textContent = `${who}, no mentor is currently listed in the directory. Your request has not been sent.`;
   byId("directoryHelpDialog")?.close();
   byId("directoryMentorDialog")?.showModal();
 }
@@ -1418,16 +1250,13 @@ const ACTIONS = {
     if (STATE.loggedIn) {
       signOut();
       window.location.assign("index.html");
-    } else go("auth");
+    } else {
+      window.location.assign("index.html");
+    }
   },
   theme: () => {
     STATE.theme = STATE.theme === "dark" ? "light" : "dark";
     DOM.root.dataset.theme = STATE.theme;
-  },
-  demo: (v) => {
-    // fills the demo login
-    DOM.query.authField("email").value = v;
-    DOM.query.authField("password").value = CONFIG.demoPassword;
   },
   "broadcast-close": () => {
     STATE.bcastOff = true;
@@ -1440,10 +1269,6 @@ const ACTIONS = {
       STATE.notice = "";
       STATE.reserved = STATE.reserved.includes(id) ? STATE.reserved.filter((i) => i !== id) : [...STATE.reserved, id];
     }
-    drawPage();
-  },
-  book: (v) => {
-    STATE.booked = STATE.booked.includes(v) ? STATE.booked.filter((i) => i !== v) : [...STATE.booked, v];
     drawPage();
   },
   vote: (v) => {
@@ -1474,8 +1299,10 @@ const ACTIONS = {
   },
   "remove-event": (v) => {
     STATE.events = STATE.events.filter((x) => !(x.id === v && x.custom));
-    if (!STATE.events.some((x) => x.id === STATE.eventId)) STATE.eventId = STATE.events[0].id;
+    if (!STATE.events.some((x) => x.id === STATE.eventId)) STATE.eventId = STATE.events[0]?.id || "";
     saveEvents();
+    STATE.keynotes.add = STATE.keynotes.add.filter((keynote) => STATE.events.some((event) => event.id === keynote.ev));
+    saveKeynotes();
     drawAll();
   },
   "key-edit": (v) => {
@@ -1496,9 +1323,7 @@ const ACTIONS = {
       STATE.delArm = id; // first click arms it, second click confirms
       return drawPage();
     }
-    if (DEFAULT_SESSIONS.some((d) => d.id === id)) {
-      if (!kn.del.includes(id)) kn.del.push(id);
-    } else kn.add = kn.add.filter((x) => x.id !== id);
+    kn.add = kn.add.filter((x) => x.id !== id);
     saveKeynotes();
     if (STATE.editKey === id) STATE.editKey = null;
     STATE.delArm = null;
@@ -1550,8 +1375,6 @@ function onChange(e) {
   const target = e.target,
     change = CHANGES[target.dataset.change];
   if (change) return change(target);
-  // show the code box only for Super Admin
-  if (target.name === "role" && target.form && target.form.id === "authForm") show(DOM.authCodeBox, target.value === "superadmin");
 }
 function onInput(e) {
   const team = e.target.dataset.score;
