@@ -25,6 +25,7 @@ const CONFIG = {
   storage: {
     events: "portal-events-v3", // Super Admin edits to events survive a refresh
     keynotes: "portal-keynotes-v1", // added / edited / deleted keynotes
+    notices: "portal-notice-board-v1",
     accounts: "portal-accounts-v1",
     session: "portal-session-v1",
   },
@@ -83,8 +84,6 @@ const ICONS = {
   mentors: '<circle cx="12" cy="12" r="10"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3M12 17h.01"/>',
   teams:
     '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8"/>',
-  notices:
-    '<path d="M3 11v2a1 1 0 0 0 1 1h2l5 4V6L6 10H4a1 1 0 0 0-1 1z"/><path d="M15 9a4 4 0 0 1 0 6M18 6a8 8 0 0 1 0 12"/>',
   judging: '<circle cx="12" cy="8" r="6"/><path d="M15.5 13.5 17 22l-5-3-5 3 1.5-8.5"/>',
   admin: '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>',
   auth: '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6M22 11h-6"/>',
@@ -129,22 +128,21 @@ const MENU = [
   { id: "live", label: "Live program & keynotes", hint: "Talks, workshops and questions" },
   { id: "mentors", label: "Mentor 1-on-1 hub", hint: "Get help from an expert" },
   { id: "teams", label: "Team directory", hint: "See all teams" },
-  { id: "notices", label: "Notice board", hint: "Announcements for teams" },
   { id: "judging", label: "Judging portal", hint: "Score the projects" },
   { id: "admin", label: "Super Admin console", hint: "Banner, countdown, controls" },
   { id: "auth", label: "Log in & registration", hint: "Sign in or create an account" },
 ];
 // TODO: Connect these navigation entries when their team pages are ready.
-const PLACEHOLDER_NAV_IDS = new Set(["mentors", "notices", "judging"]);
+const PLACEHOLDER_NAV_IDS = new Set(["mentors", "judging"]);
 const SIGNUP_ROLES = ["attendee", "mentor", "team", "judge", "superadmin"]; // roles a person can pick when registering
 // This shows which menus each account role can open.
 const ALLOWED = {
   guest: ["live", "auth"],
   attendee: ["live", "auth"],
   mentor: ["live", "mentors", "auth"],
-  team: ["live", "mentors", "teams", "notices", "auth"],
+  team: ["live", "mentors", "teams", "auth"],
   judge: ["live", "judging", "auth"],
-  superadmin: ["live", "mentors", "teams", "notices", "judging", "admin", "auth"],
+  superadmin: ["live", "mentors", "teams", "judging", "admin", "auth"],
 };
 const TYPES = ["All", "Main Stage", "Workshop Lab", "Mentor Pit", "Lightning Talks"];
 
@@ -175,6 +173,10 @@ const STATE = {
   delArm: null, // keynote waiting for "Confirm delete"
   keyNote: "",
   notice: "",
+  noticeBoard: loadNotices(),
+  noticeBoardNote: "",
+  editingNoticeId: null,
+  deleteNoticeId: null,
   evNote: "",
   authMode: "login",
   reserved: [],
@@ -318,6 +320,30 @@ function saveKeynotes() {
     localStorage.setItem(CONFIG.storage.keynotes, JSON.stringify(STATE.keynotes));
   } catch (e) {
     /* ignore */
+  }
+}
+function loadNotices() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(CONFIG.storage.notices) || "[]");
+    if (!Array.isArray(saved)) return [];
+    return saved.filter(
+      (notice) =>
+        notice &&
+        typeof notice.id === "string" &&
+        typeof notice.title === "string" &&
+        typeof notice.message === "string" &&
+        typeof notice.createdAt === "string",
+    );
+  } catch {
+    return [];
+  }
+}
+function saveNotices() {
+  try {
+    localStorage.setItem(CONFIG.storage.notices, JSON.stringify(STATE.noticeBoard));
+    return true;
+  } catch {
+    return false;
   }
 }
 function updateEvent(patch) {
@@ -594,6 +620,22 @@ function keynotePanelHtml() {
       <span class="admin-list__actions"><button class="btn admin-action" type="button" data-action="key-edit" data-value="${x.id}">${svg("edit", 16)} Edit</button><button class="btn admin-action admin-action--danger" type="button" data-action="key-delete" data-value="${x.id}">${svg("trash", 16)} ${STATE.delArm === x.id ? "Confirm delete" : "Delete"}</button></span></div>`).join("")}</div>` : '<p class="u-text-soft">No keynotes yet for this event.</p>'}</section>`;
 }
 
+function noticeBoardPanelHtml() {
+  const editing = STATE.noticeBoard.find((notice) => notice.id === STATE.editingNoticeId),
+    notices = [...STATE.noticeBoard].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  return `<section class="panel panel--narrow admin-grid__item admin-grid__item--notices"><div class="admin-section-heading"><span class="admin-section-heading__icon">${svg("alert", 21)}</span><h3>${editing ? "Edit notice" : "Notice board management"}</h3></div>
+    <p class="u-text-soft">${editing ? "Update this notice for the team directory." : "Publish announcements that appear on the Team Directory notice board."}</p>
+    <form class="form" id="noticeForm" novalidate>
+      <label class="field">Title<input class="input" name="title" required maxlength="120" placeholder="e.g. Team registration closes Friday" value="${esc(editing ? editing.title : "")}"></label>
+      <label class="field">Message<textarea class="input" name="message" required rows="4" placeholder="Share the details teams need to know.">${esc(editing ? editing.message : "")}</textarea></label>
+      <p class="form__error" id="noticeBoardError" role="alert"></p>
+      <div class="cluster"><button class="btn btn--primary">${svg(editing ? "edit" : "send", 17)} ${editing ? "Save changes" : "Publish notice"}</button>${editing ? `<button class="btn" type="button" data-action="notice-cancel">${svg("x", 16)} Cancel</button>` : ""}</div>
+    </form>
+    ${STATE.noticeBoardNote ? `<p class="notice" role="status">${esc(STATE.noticeBoardNote)}</p>` : ""}
+    ${notices.length ? `<div><p class="text-label u-text-soft">Published notices</p>${notices.map((notice) => `<div class="admin-list__item"><span class="admin-list__info"><b>${esc(notice.title)}</b><br><span class="u-text-soft">${esc(notice.message)}</span></span>
+      <span class="admin-list__actions"><button class="btn admin-action" type="button" data-action="notice-edit" data-value="${esc(notice.id)}">${svg("edit", 16)} Edit</button><button class="btn admin-action admin-action--danger" type="button" data-action="notice-delete" data-value="${esc(notice.id)}">${svg("trash", 16)} ${STATE.deleteNoticeId === notice.id ? "Confirm delete" : "Delete"}</button></span></div>`).join("")}</div>` : '<p class="u-text-soft">No notices have been published yet.</p>'}</section>`;
+}
+
 const cardGrid = (cards, spaced) => `<div class="card-grid${withClass(spaced, "card-grid--spaced")}">${cards}</div>`;
 
 const directoryStorage = {
@@ -613,6 +655,7 @@ const directoryMembers = () => directoryStorage.get("geekulchaExtraMembers").fil
 function teamDirectoryHtml() {
   const teams = directoryTeams(),
     members = directoryMembers(),
+    notices = [...STATE.noticeBoard].sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
     event = currentEvent(),
     broadcastDismissed = (() => {
       try { return localStorage.getItem("geekulchaBroadcastDismissed") === "1"; } catch { return false; }
@@ -657,8 +700,11 @@ function teamDirectoryHtml() {
       </div>
       <aside class="directory-side">
         ${event && event.note && !broadcastDismissed ? `<section class="directory-panel directory-broadcast" id="directory-broadcast"><div class="directory-broadcast-heading"><span class="directory-live-dot"></span><p class="directory-eyebrow">PINNED BROADCAST</p><button class="directory-icon-button" type="button" data-action="directory-dismiss-broadcast" aria-label="Dismiss broadcast">×</button></div><h2>Event update</h2><p>${esc(event.note)}</p><div class="directory-broadcast-footer"><span>Organizer announcement</span><span>Stays until dismissed</span></div></section>` : ""}
-        <section class="directory-panel" id="directory-notice-board"><div class="directory-section-heading"><div><p class="directory-eyebrow">KEEP AN EYE ON</p><h2>Notice board</h2></div><span class="directory-pill">Schedule</span></div><p class="directory-notice-intro">Key event moments and working times in one place.</p><div class="directory-schedule">
-          <p class="empty-state u-text-soft">No schedule items have been published yet.</p>
+        <section class="directory-panel" id="directory-notice-board"><div class="directory-section-heading"><div><p class="directory-eyebrow">KEEP AN EYE ON</p><h2>Notice board</h2></div><span class="directory-pill">${notices.length} ${notices.length === 1 ? "notice" : "notices"}</span></div><p class="directory-notice-intro">Announcements and updates from event admins.</p><div class="directory-schedule">
+          ${notices.length ? notices.map((notice) => {
+            const createdAt = new Date(notice.createdAt);
+            return `<article><time class="directory-time" datetime="${esc(notice.createdAt)}">${Number.isNaN(createdAt.getTime()) ? "" : esc(createdAt.toLocaleDateString([], { month: "short", day: "numeric" }))}</time><span class="directory-timeline-dot" aria-hidden="true"></span><div><strong>${esc(notice.title)}</strong><p class="directory-notice-message">${esc(notice.message)}</p><small>${Number.isNaN(createdAt.getTime()) ? "" : `Posted ${esc(createdAt.toLocaleString([], { dateStyle: "medium", timeStyle: "short" }))}`}</small></div></article>`;
+          }).join("") : '<p class="empty-state u-text-soft">No notices have been published yet.</p>'}
         </div></section>
         <section class="directory-panel directory-help"><span class="directory-help-icon">${svg("mentors", 20)}</span><div><strong>Need a hand?</strong><p>Mentor listings will appear here when available.</p></div><button class="directory-button directory-button--primary" type="button" data-action="directory-open-help">Request</button></section>
       </aside>
@@ -704,8 +750,6 @@ const PAGES = {
 
   teams: () => teamDirectoryHtml(),
 
-  notices: () => '<p class="empty-state u-text-soft">No notices have been published yet.</p>',
-
   judging: () =>
     `<p class="u-text-soft u-mt-20">Give each team a score from 0 to 10.</p>` +
     '<p class="empty-state u-text-soft">No teams are available to score yet.</p>',
@@ -715,6 +759,7 @@ const PAGES = {
     const programSessions = e ? allSessions().filter((session) => session.ev === e.id).length : 0;
     const managedEvents = STATE.events.length;
     const submissionState = e ? (e.open ? "Open" : "Closed") : "Not configured";
+    const noticeBoard = noticeBoardPanelHtml();
     const settings = e
       ? `<section class="panel panel--narrow admin-grid__item admin-grid__item--settings"><div class="admin-section-heading"><span class="admin-section-heading__icon">${svg("admin", 21)}</span><h3>Program settings</h3></div><p class="u-text-soft">Changes apply to: <strong class="u-text-strong">${esc(e.short)}</strong></p>
     <label class="field">Banner image URL<input class="input" id="bannerImageInput" placeholder="https://example.com/banner.jpg" value="${e.image.startsWith("data:") ? "" : esc(e.image)}"></label>
@@ -753,7 +798,7 @@ const PAGES = {
         </article>
       </div>
     </section>
-    <div class="admin-grid">${settings}${keynotePanelHtml()}${eventPanelHtml()}</div>`;
+    <div class="admin-grid">${settings}${keynotePanelHtml()}${eventPanelHtml()}${noticeBoard}</div>`;
   },
 
   auth: () => {
@@ -1051,6 +1096,9 @@ function go(id) {
   STATE.delArm = null;
   STATE.keyNote = "";
   STATE.notice = "";
+  STATE.noticeBoardNote = "";
+  STATE.editingNoticeId = null;
+  STATE.deleteNoticeId = null;
   STATE.evNote = "";
   drawNav();
   drawTop();
@@ -1127,6 +1175,35 @@ function handleKeynote(form) {
     (end <= Date.now() ? " Its end time has already passed, so it will not show in the program." : " It is now in Live program & keynotes.");
   STATE.editKey = null;
   STATE.delArm = null;
+  drawPage();
+}
+function handleNotice(form) {
+  const data = new FormData(form),
+    title = String(data.get("title") || "").trim(),
+    message = String(data.get("message") || "").trim(),
+    error = byId("noticeBoardError");
+  if (!title || !message) {
+    error.textContent = "Please enter both a title and a message.";
+    return;
+  }
+  const now = new Date().toISOString(),
+    existing = STATE.noticeBoard.find((notice) => notice.id === STATE.editingNoticeId),
+    notice = existing
+      ? { ...existing, title, message, updatedAt: now }
+      : { id: `notice-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`, title, message, createdAt: now },
+    previous = STATE.noticeBoard;
+  STATE.noticeBoard = existing
+    ? previous.map((item) => (item.id === existing.id ? notice : item))
+    : [...previous, notice];
+  if (!saveNotices()) {
+    STATE.noticeBoard = previous;
+    STATE.noticeBoardNote = "Unable to save the notice. Browser storage is unavailable.";
+    drawPage();
+    return;
+  }
+  STATE.noticeBoardNote = `Notice ${existing ? "updated" : "published"} and visible in the Team Directory.`;
+  STATE.editingNoticeId = null;
+  STATE.deleteNoticeId = null;
   drawPage();
 }
 function showDirectoryToast(message) {
@@ -1330,6 +1407,36 @@ const ACTIONS = {
     STATE.keyNote = "Keynote deleted.";
     drawPage();
   },
+  "notice-edit": (id) => {
+    STATE.editingNoticeId = id;
+    STATE.deleteNoticeId = null;
+    STATE.noticeBoardNote = "";
+    drawPage();
+    byId("noticeForm").scrollIntoView({ block: "center" });
+  },
+  "notice-cancel": () => {
+    STATE.editingNoticeId = null;
+    STATE.deleteNoticeId = null;
+    STATE.noticeBoardNote = "";
+    drawPage();
+  },
+  "notice-delete": (id) => {
+    if (STATE.deleteNoticeId !== id) {
+      STATE.deleteNoticeId = id;
+      return drawPage();
+    }
+    const previous = STATE.noticeBoard;
+    STATE.noticeBoard = previous.filter((notice) => notice.id !== id);
+    if (!saveNotices()) {
+      STATE.noticeBoard = previous;
+      STATE.noticeBoardNote = "Unable to remove the notice. Browser storage is unavailable.";
+    } else {
+      STATE.noticeBoardNote = "Notice removed from the Team Directory.";
+      if (STATE.editingNoticeId === id) STATE.editingNoticeId = null;
+    }
+    STATE.deleteNoticeId = null;
+    drawPage();
+  },
 };
 
 const CHANGES = {
@@ -1358,6 +1465,7 @@ const FORMS = {
   authForm: handleAuth,
   eventForm: handleEvent,
   keyForm: handleKeynote,
+  noticeForm: handleNotice,
   directoryTeamForm: handleDirectoryTeam,
   directoryMemberForm: handleDirectoryMember,
   directoryHelpForm: handleDirectoryHelp,

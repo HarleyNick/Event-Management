@@ -1374,6 +1374,7 @@ textarea.input { resize: vertical; line-height: var(--lh-control); }
 .directory-schedule strong,
 .directory-schedule small { display: block; }
 .directory-schedule small { color: var(--color-text-soft); }
+.directory-schedule .directory-notice-message { margin: var(--space-6) var(--space-0); color: var(--color-text-soft); white-space: pre-line; }
 .directory-schedule-footnote { color: var(--color-text-soft); font: 500 var(--fs-62)/1.6 var(--font-mono); text-transform: uppercase; }
 .directory-help { display: flex; align-items: center; gap: var(--space-14); }
 .directory-help-icon {
@@ -1811,6 +1812,7 @@ textarea.input { resize: vertical; line-height: var(--lh-control); }
 .admin-grid__item--settings { grid-column: 2; grid-row: 1; }
 .admin-grid__item--keynotes { grid-column: 1; grid-row: 1 / span 2; }
 .admin-grid__item--events { grid-column: 2; grid-row: 2; }
+.admin-grid__item--notices { grid-column: 1 / -1; }
 .admin-section-heading {
   display: flex;
   align-items: center;
@@ -2128,7 +2130,8 @@ body,
   .admin-grid { grid-template-columns: minmax(0, 1fr); }
   .admin-grid__item--settings,
   .admin-grid__item--keynotes,
-  .admin-grid__item--events { grid-column: auto; grid-row: auto; }
+  .admin-grid__item--events,
+  .admin-grid__item--notices { grid-column: auto; grid-row: auto; }
   .page-header, .page, .broadcast, .banner {
     padding-left: var(--page-pad-x-sm);
     padding-right: var(--page-pad-x-sm);
