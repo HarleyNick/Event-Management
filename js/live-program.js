@@ -138,7 +138,7 @@ const MENU = [
   { id: "auth", label: "Log in & registration", hint: "Sign in or create an account" },
 ];
 // TODO: Connect these navigation entries when their team pages are ready.
-const PLACEHOLDER_NAV_IDS = new Set(["mentors", "teams", "notices", "judging"]);
+const PLACEHOLDER_NAV_IDS = new Set(["mentors", "notices", "judging"]);
 const SIGNUP_ROLES = ["attendee", "mentor", "team", "judge", "superadmin"]; // roles a person can pick when registering
 // This shows which menus each account role can open.
 const ALLOWED = {
@@ -522,7 +522,12 @@ function signIn(user) {
   STATE.user = user;
   STATE.role = user.role;
   STATE.loggedIn = true;
-  STATE.page = "live";
+  if (!window.location.pathname.toLowerCase().endsWith("team-directory.html")) {
+    const hashPage = window.location.hash.replace(/^#/, "");
+    STATE.page = hashPage && MENU.some((item) => item.id === hashPage) ? hashPage : "live";
+  } else {
+    STATE.page = "teams";
+  }
   try {
     localStorage.setItem(CONFIG.storage.session, user.email);
   } catch (e) {
@@ -737,6 +742,105 @@ function keynotePanelHtml() {
 
 const cardGrid = (cards, spaced) => `<div class="card-grid${withClass(spaced, "card-grid--spaced")}">${cards}</div>`;
 
+const directoryStorage = {
+  get(key) {
+    try { return JSON.parse(localStorage.getItem(key) || "[]"); } catch { return []; }
+  },
+  set(key, value) {
+    try { localStorage.setItem(key, JSON.stringify(value)); return true; } catch { return false; }
+  },
+};
+const directoryTeams = () => directoryStorage.get("geekulchaExtraTeams").filter((x) => x && typeof x.name === "string");
+const directoryMembers = () => directoryStorage.get("geekulchaExtraMembers").filter((x) => x && typeof x.name === "string");
+
+function teamDirectoryHtml() {
+  const teams = directoryTeams(),
+    members = directoryMembers(),
+    broadcastDismissed = (() => {
+      try { return localStorage.getItem("geekulchaBroadcastDismissed") === "1"; } catch { return false; }
+    })(),
+    teamCount = 4 + teams.length,
+    memberCount = 7 + members.length,
+    savedTeams = [
+      `<article class="team-row"><span class="team-badge badge-one">01</span><div><h4>Registration &amp; Login</h4><p>Lisa Erasmus</p><small>Registration and login page</small></div><span class="team-status">Design</span></article>`,
+      `<article class="team-row"><span class="team-badge badge-two">02</span><div><h4>Live Programme</h4><p>Nkosinathi Maseko · Lesedi Makhatha</p><small>Programme framework and live event page</small></div><span class="team-status">Building</span></article>`,
+      `<article class="team-row"><span class="team-badge badge-three">03</span><div><h4>Security &amp; Research</h4><p>Dewald Jordan · Ntsako Kekae</p><small>IDS, database encryption and OWASP Top 10 research</small></div><span class="team-status">Research</span></article>`,
+      ...teams.map((team) => `<article class="team-row"><span class="team-badge badge-one">${String(team.number).padStart(2, "0")}</span><div><h4>${esc(team.name)}</h4><p>Project team</p><small>${esc(team.role)}</small></div><button class="remove-entry" type="button" data-action="directory-remove-team" data-value="${esc(team.number)}">Remove</button></article>`),
+      ...members.map((member) => `<article class="team-row"><span class="team-badge badge-three">${esc(member.name.split(/\s+/).map((p) => p[0]).join("").slice(0, 2).toUpperCase())}</span><div><h4>${esc(member.name)}</h4><p>${esc(member.team)} · ${esc(member.role)}</p><small>Team member</small></div><button class="remove-entry" type="button" data-action="directory-remove-member" data-value="${esc(member.name)}">Remove</button></article>`),
+    ].join("");
+
+  return `<div class="directory-hub">
+    <section class="directory-welcome">
+      <div><p class="directory-eyebrow">GEEKULCHA · PROJECT WORKSPACE</p><h1>Team directory<span>.</span></h1><p class="directory-subheading">Meet the people, follow the updates and find the tools that help us build together.</p></div>
+      <div class="directory-welcome-mark" aria-hidden="true"><span>G</span><i>04</i></div>
+    </section>
+    <section class="directory-stats" aria-label="Workspace overview">
+      <article><span class="directory-stat-icon">${svg("teams", 18)}</span><div><strong>${teamCount}</strong><small>Project teams</small></div></article>
+      <article><span class="directory-stat-icon">${svg("auth", 18)}</span><div><strong>${memberCount}</strong><small>Team members</small></div></article>
+      <article><span class="directory-stat-icon">${svg("layers", 18)}</span><div><strong>${teamCount}</strong><small>Team work areas</small></div></article>
+    </section>
+    <div class="directory-main-grid">
+      <div class="directory-primary">
+        <section class="directory-panel" id="directory">
+          <div class="directory-section-heading"><div><p class="directory-eyebrow">YOUR MAIN WORK AREA</p><h2>Team 4 <span>— Directory</span></h2></div><span class="directory-pill directory-pill--accent">Your team</span></div>
+          <p class="directory-section-intro">We make it easy for everyone to know who is involved, what each team does and who to contact.</p>
+          <div class="directory-featured-members">
+            <article><span class="directory-avatar directory-avatar--red">SM</span><div><h3>Sinethemba Malinga</h3><p>Directory coordinator</p><small>Team directory · Team 4</small></div></article>
+            <article><span class="directory-avatar directory-avatar--amber">EC</span><div><h3>Ethan Carelse</h3><p>Directory coordinator</p><small>Team directory · Team 4</small></div></article>
+          </div>
+          <div class="directory-focus">${svg("spark", 18)}<p><strong>Our focus</strong><br>Keep the directory clear and up to date, show each team's responsibilities, and make the workspace welcoming for people who are new to technology.</p></div>
+          <div class="directory-subheading"><h3>All project teams</h3><span id="directory-member-label">${memberCount} people · ${teamCount} teams</span></div>
+          <div class="directory-other-teams">${savedTeams}</div>
+          <div class="directory-actions"><button class="directory-button directory-button--primary" type="button" data-action="directory-open-team">＋ Register a team</button><button class="directory-button directory-button--secondary" type="button" data-action="directory-open-member">＋ Add a member</button></div>
+        </section>
+        <section class="directory-panel" id="directory-resources">
+          <div class="directory-section-heading"><div><p class="directory-eyebrow">USEFUL LINKS</p><h2>Team resources</h2></div><span class="directory-quiet-label">Helpful tools &amp; guides</span></div>
+          <div class="directory-resource-list">
+            <a href="https://developer.mozilla.org/en-US/docs/Learn" target="_blank" rel="noopener"><span class="directory-resource-icon directory-resource-icon--violet">⌘</span><span><strong>MDN Web Docs</strong><small>Beginner-friendly lessons for HTML, CSS and JavaScript.</small></span><b>↗</b></a>
+            <a href="https://www.w3schools.com/" target="_blank" rel="noopener"><span class="directory-resource-icon directory-resource-icon--green">W3</span><span><strong>W3Schools</strong><small>Simple examples to practise web development basics.</small></span><b>↗</b></a>
+            <a href="https://owasp.org/www-project-top-ten/" target="_blank" rel="noopener"><span class="directory-resource-icon directory-resource-icon--amber">OW</span><span><strong>OWASP Top 10</strong><small>Common web application security risks for Team 3.</small></span><b>↗</b></a>
+            <a href="https://docs.github.com/en/get-started" target="_blank" rel="noopener"><span class="directory-resource-icon directory-resource-icon--dark">⌘</span><span><strong>GitHub Guides</strong><small>Learn how to save code and collaborate as a team.</small></span><b>↗</b></a>
+            <a href="https://code.visualstudio.com/docs" target="_blank" rel="noopener"><span class="directory-resource-icon directory-resource-icon--violet">VS</span><span><strong>Visual Studio Code</strong><small>Editor setup, extensions and beginner documentation.</small></span><b>↗</b></a>
+          </div>
+        </section>
+      </div>
+      <aside class="directory-side">
+        <section class="directory-panel directory-broadcast${broadcastDismissed ? " is-hidden" : ""}" id="directory-broadcast"><div class="directory-broadcast-heading"><span class="directory-live-dot"></span><p class="directory-eyebrow">PINNED BROADCAST</p><button class="directory-icon-button" type="button" data-action="directory-dismiss-broadcast" aria-label="Dismiss broadcast">×</button></div><h2>Welcome to the Geekulcha workspace</h2><p>Check the notice board for the event schedule, keep your team details up to date and use the shared resources when you need a hand.</p><div class="directory-broadcast-footer"><span>Workspace announcement</span><span>Stays until dismissed</span></div></section>
+        <section class="directory-panel" id="directory-notice-board"><div class="directory-section-heading"><div><p class="directory-eyebrow">KEEP AN EYE ON</p><h2>Notice board</h2></div><span class="directory-pill">Schedule</span></div><p class="directory-notice-intro">Key event moments and working times in one place.</p><div class="directory-schedule">
+          <article><div class="directory-time">08:00 – 09:30</div><span class="directory-timeline-dot"></span><div><strong>Hacker registration &amp; swag badge pickup</strong><small>Participant check-in and badge collection.</small></div></article>
+          <article><div class="directory-time">Time TBC</div><span class="directory-timeline-dot"></span><div><strong>Kickoff breakfast &amp; espresso fuel bar</strong><small>Breakfast opens for participants; settle in and get ready to start.</small></div></article>
+          <article><div class="directory-time">Time TBC</div><span class="directory-timeline-dot"></span><div><strong>Sponsor power lunch</strong><small>Lunch break and time to connect with sponsors.</small></div></article>
+        </div><p class="directory-schedule-footnote">“Time TBC” means the exact time still needs to be confirmed by the organiser.</p></section>
+        <section class="directory-panel directory-help"><span class="directory-help-icon">${svg("mentors", 20)}</span><div><strong>Need a hand?</strong><p>Tell us what you need and we will connect you with a mentor.</p></div><button class="directory-button directory-button--primary" type="button" data-action="directory-open-help">Request</button></section>
+      </aside>
+    </div>
+    ${directoryDialogsHtml()}
+    <div class="directory-toast" id="directoryToast" role="status" aria-live="polite"></div>
+  </div>`;
+}
+
+function directoryDialogsHtml() {
+  return `<dialog class="directory-dialog" id="directoryTeamDialog"><form id="directoryTeamForm" method="dialog">
+      <div class="directory-dialog-heading"><div><p class="directory-eyebrow">WORKSPACE DIRECTORY</p><h2>Register a team</h2></div><button type="button" class="directory-icon-button" data-action="directory-close-dialog" aria-label="Close">×</button></div>
+      <label>Team name<input name="teamName" required placeholder="e.g. Design team"></label><label>Team number<input name="teamNumber" required type="number" min="1" max="99" placeholder="e.g. 5"></label><label>Team responsibility<textarea name="teamRole" required rows="3" placeholder="What will this team work on?"></textarea></label><p class="directory-form-error" id="directoryTeamError" role="alert"></p><div class="directory-dialog-actions"><button type="button" class="directory-button directory-button--secondary" data-action="directory-close-dialog">Cancel</button><button class="directory-button directory-button--primary" type="submit">Save team</button></div><p class="directory-form-note">Saved in this browser only.</p>
+    </form></dialog>
+    <dialog class="directory-dialog" id="directoryMemberDialog"><form id="directoryMemberForm" method="dialog">
+      <div class="directory-dialog-heading"><div><p class="directory-eyebrow">WORKSPACE DIRECTORY</p><h2>Add a member</h2></div><button type="button" class="directory-icon-button" data-action="directory-close-dialog" aria-label="Close">×</button></div>
+      <label>Full name<input name="memberName" required placeholder="Enter their full name"></label><label>Team<select name="memberTeam" required><option value="">Choose a team</option><option>Team 1</option><option>Team 2</option><option>Team 3</option><option>Team 4</option></select></label><label>Role<input name="memberRole" required placeholder="e.g. Front-end developer"></label><div class="directory-dialog-actions"><button type="button" class="directory-button directory-button--secondary" data-action="directory-close-dialog">Cancel</button><button class="directory-button directory-button--primary" type="submit">Add member</button></div><p class="directory-form-note">Saved in this browser only.</p>
+    </form></dialog>
+    <dialog class="directory-dialog" id="directoryHelpDialog"><form id="directoryHelpForm" method="dialog">
+      <div class="directory-dialog-heading"><div><p class="directory-eyebrow">NEED HELP?</p><h2>Request help</h2></div><button type="button" class="directory-icon-button" data-action="directory-close-dialog" aria-label="Close">×</button></div>
+      <label>Your name<input name="who" required placeholder="e.g. Thabo Mokoena"></label><fieldset><legend>What type of help do you need?</legend><div class="directory-help-options">${[
+        ["tech", "Technical / coding", "Bugs, HTML, CSS, JavaScript"],
+        ["reg", "Registration & login", "Sign-up, accounts, forms"],
+        ["live", "Live programme", "Schedule, live event page"],
+        ["security", "Security & research", "Passwords, data, OWASP"],
+        ["other", "Something else", "Not sure where to start"],
+      ].map(([id, label, hint]) => `<label><input type="radio" name="kind" value="${id}" required><span><strong>${label}</strong><small>${hint}</small></span></label>`).join("")}</div></fieldset>
+      <label>What is happening? (optional)<textarea name="details" rows="3" placeholder="A short description helps the mentor prepare."></textarea></label><p class="directory-form-error" id="directoryHelpError" role="alert"></p><div class="directory-dialog-actions"><button type="button" class="directory-button directory-button--secondary" data-action="directory-close-dialog">Cancel</button><button class="directory-button directory-button--primary" type="submit">Find a mentor</button></div>
+    </form></dialog>
+    <dialog class="directory-dialog" id="directoryMentorDialog"><div class="directory-dialog-body"><div class="directory-dialog-heading"><div><p class="directory-eyebrow">MENTOR MATCHED</p><h2>A mentor can help you</h2></div><button type="button" class="directory-icon-button" data-action="directory-close-dialog" aria-label="Close">×</button></div><article class="directory-featured-person"><span class="directory-avatar directory-avatar--red" id="directoryMentorAvatar">TM</span><div><h3 id="directoryMentorName">Directory coordinator</h3><p id="directoryMentorRole">Mentor</p></div></article><p id="directoryMentorSummary" class="directory-mentor-summary"></p><p class="directory-mentor-hint">Ask an organiser in person while demo mentor email is pending.</p><div class="directory-dialog-actions"><button type="button" class="directory-button directory-button--secondary" data-action="directory-close-dialog">Close</button></div></div></dialog>`;
+}
 // This list chooses which page HTML to show.
 const PAGES = {
   live: () => `<div class="live-program"><section>
@@ -755,11 +859,7 @@ const PAGES = {
       }).join(""),
     ),
 
-  teams: () =>
-    cardGrid(
-      TEAMS.map(([n, m]) => `<article class="info-card"><h3 class="info-card__title">${n}</h3><p class="info-card__text u-text-soft">${m} members</p></article>`).join(""),
-      true,
-    ),
+  teams: () => teamDirectoryHtml(),
 
   notices: () =>
     cardGrid(
@@ -1091,6 +1191,16 @@ function syncSessions() {
    10. ACTIONS: what each click does (looked up by the data-action name)
    ========================================================================== */
 function go(id) {
+  if (id === "teams") {
+    if (!window.location.pathname.toLowerCase().endsWith("team-directory.html")) {
+      window.location.assign("team-directory.html");
+    }
+    return;
+  }
+  if (window.location.pathname.toLowerCase().endsWith("team-directory.html")) {
+    window.location.assign("live-program.html" + (id !== "live" ? "#" + id : ""));
+    return;
+  }
   STATE.page = id;
   STATE.editKey = null;
   STATE.delArm = null;
@@ -1174,6 +1284,74 @@ function handleKeynote(form) {
   STATE.delArm = null;
   drawPage();
 }
+function showDirectoryToast(message) {
+  const toast = byId("directoryToast");
+  if (!toast) return;
+  toast.textContent = message;
+  toast.classList.add("is-visible");
+  window.setTimeout(() => toast.classList.remove("is-visible"), 2600);
+}
+function handleDirectoryTeam(form) {
+  const data = new FormData(form);
+  const name = String(data.get("teamName") || "").trim();
+  const number = Number.parseInt(String(data.get("teamNumber") || ""), 10);
+  const role = String(data.get("teamRole") || "").trim();
+  const error = byId("directoryTeamError");
+  if (!name || !role || !Number.isInteger(number) || number < 1 || number > 99) {
+    error.textContent = "Please fill in every field. The team number must be between 1 and 99.";
+    return;
+  }
+  const teams = directoryTeams();
+  if ([1, 2, 3, 4].includes(number) || teams.some((team) => Number(team.number) === number)) {
+    error.textContent = `Team ${number} already exists. Please choose a different number.`;
+    return;
+  }
+  teams.push({ name, number: String(number), role });
+  directoryStorage.set("geekulchaExtraTeams", teams);
+  form.reset();
+  byId("directoryTeamDialog")?.close();
+  showDirectoryToast("Team added to this browser's directory.");
+  drawPage();
+}
+function handleDirectoryMember(form) {
+  const data = new FormData(form);
+  const name = String(data.get("memberName") || "").trim();
+  const team = String(data.get("memberTeam") || "");
+  const role = String(data.get("memberRole") || "").trim();
+  if (!name || !team || !role) return;
+  const members = directoryMembers();
+  members.push({ name, team, role });
+  directoryStorage.set("geekulchaExtraMembers", members);
+  form.reset();
+  byId("directoryMemberDialog")?.close();
+  showDirectoryToast("Member added to this browser's directory.");
+  drawPage();
+}
+function handleDirectoryHelp(form) {
+  const data = new FormData(form);
+  const who = String(data.get("who") || "").trim();
+  const kind = data.get("kind");
+  const details = String(data.get("details") || "").trim();
+  const error = byId("directoryHelpError");
+  if (!who || !kind) {
+    error.textContent = "Please add your name and choose a type of help.";
+    return;
+  }
+  const types = {
+    tech: ["Technical mentor", "Technical / coding"],
+    reg: ["Registration mentor", "Registration & login"],
+    live: ["Programme mentor", "Live programme"],
+    security: ["Security mentor", "Security & research"],
+    other: ["Directory coordinator", "Something else"],
+  };
+  const [name, label] = types[kind] || types.other;
+  byId("directoryMentorAvatar").textContent = name.split(/\s+/).map((part) => part[0]).join("").slice(0, 2).toUpperCase();
+  byId("directoryMentorName").textContent = name;
+  byId("directoryMentorRole").textContent = `Mentor · ${label}`;
+  byId("directoryMentorSummary").textContent = `${who}, you asked for help with: ${label}.${details ? ` "${details}"` : ""}`;
+  byId("directoryHelpDialog")?.close();
+  byId("directoryMentorDialog")?.showModal();
+}
 function handleQuestion(form) {
   const f = new FormData(form),
     name = f.get("name").trim(),
@@ -1198,6 +1376,31 @@ function handleQuestion(form) {
 
 const ACTIONS = {
   nav: (v) => go(v),
+  "directory-open-team": () => {
+    const dialog = byId("directoryTeamDialog");
+    byId("directoryTeamError").textContent = "";
+    dialog?.showModal();
+  },
+  "directory-open-member": () => byId("directoryMemberDialog")?.showModal(),
+  "directory-open-help": () => byId("directoryHelpDialog")?.showModal(),
+  "directory-close-dialog": (v, button) => button.closest("dialog")?.close(),
+  "directory-dismiss-broadcast": () => {
+    byId("directory-broadcast")?.remove();
+    try { localStorage.setItem("geekulchaBroadcastDismissed", "1"); } catch {}
+  },
+  "directory-remove-team": (number) => {
+    const teams = directoryTeams();
+    const team = teams.find((x) => String(x.number) === String(number));
+    if (!team || !window.confirm(`Remove "${team.name}" from this browser's directory?`)) return;
+    directoryStorage.set("geekulchaExtraTeams", teams.filter((x) => String(x.number) !== String(number)));
+    drawPage();
+  },
+  "directory-remove-member": (name) => {
+    const members = directoryMembers();
+    if (!window.confirm(`Remove ${name} from this browser's directory?`)) return;
+    directoryStorage.set("geekulchaExtraMembers", members.filter((x) => x.name !== name));
+    drawPage();
+  },
   topic: (v) => {
     STATE.topic = STATE.topic === v ? "" : v;
     drawPage();
@@ -1330,6 +1533,9 @@ const FORMS = {
   authForm: handleAuth,
   eventForm: handleEvent,
   keyForm: handleKeynote,
+  directoryTeamForm: handleDirectoryTeam,
+  directoryMemberForm: handleDirectoryMember,
+  directoryHelpForm: handleDirectoryHelp,
 };
 
 function onClick(e) {
@@ -1337,6 +1543,8 @@ function onClick(e) {
   const button = e.target.closest("[data-action]");
   const action = button && ACTIONS[button.dataset.action];
   if (action) action(button.dataset.value, button);
+  const dialog = e.target.closest("dialog");
+  if (dialog && e.target === dialog) dialog.close();
 }
 function onChange(e) {
   const target = e.target,
@@ -1367,6 +1575,14 @@ function onSubmit(e) {
    11. init(): wire every listener once, then start the app
    ========================================================================== */
 function init() {
+  if (window.location.pathname.toLowerCase().endsWith("team-directory.html")) {
+    STATE.page = "teams";
+  } else {
+    const hashPage = window.location.hash.replace(/^#/, "");
+    if (hashPage && MENU.some((item) => item.id === hashPage) && can(STATE.role, hashPage)) {
+      STATE.page = hashPage;
+    }
+  }
   // Settings in css/live-program.css are read from tokens so the files stay in sync.
   STATE.bannerShrink = parseFloat(readToken("--banner-shrink")) || STATE.bannerShrink;
   STATE.pixelPalette = CONFIG.pixelTokens.map(readToken);

@@ -47,13 +47,43 @@ const wait = ms => new Promise(r => setTimeout(r, ms));
 // (formData.append('photo', data.photo)); JSON cannot carry a file.
 async function apiRegister(data){
   await wait(700);
+  const accountsKey = 'portal-accounts-v1';
+  let accounts = [];
+  try { accounts = JSON.parse(localStorage.getItem(accountsKey) || '[]'); } catch { accounts = []; }
+  if (!Array.isArray(accounts)) accounts = [];
+  const email = data.email.trim().toLowerCase();
+  const duplicate = accounts.some(account => account.email && account.email.toLowerCase() === email);
+  const demoEmails = ['attendee@demo.test', 'mentor@demo.test', 'team@demo.test', 'judge@demo.test', 'admin@demo.test'];
+  if (duplicate || demoEmails.includes(email)) throw new Error('An account already exists for that email.');
   return { ok: true };
 }
 
 // Sign in. Should return { ok: true } if email and password are correct.
 async function apiLogin(data){
   await wait(700);
-  return { ok: true };
+  const email = data.email.trim().toLowerCase();
+  const role = data.role.toLowerCase().replace(/\s+/g, '');
+  const demos = {
+    'attendee@demo.test': 'attendee',
+    'mentor@demo.test': 'mentor',
+    'team@demo.test': 'team',
+    'judge@demo.test': 'judge',
+    'admin@demo.test': 'superadmin'
+  };
+  if (demos[email]) {
+    return { ok: demos[email] === role && data.password === 'demo1234' };
+  }
+
+  let accounts = [];
+  try { accounts = JSON.parse(localStorage.getItem('portal-accounts-v1') || '[]'); } catch { accounts = []; }
+  if (!Array.isArray(accounts)) return { ok: false };
+  const account = accounts.find(item => item.email && item.email.toLowerCase() === email);
+  if (!account) return { ok: false };
+  if (account.role && account.role !== role) return { ok: false };
+  if (!crypto || !crypto.subtle) return { ok: false };
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(email + ':' + data.password));
+  const key = [...new Uint8Array(digest)].map(byte => byte.toString(16).padStart(2, '0')).join('');
+  return { ok: account.key === key };
 }
 
 // Check the 6-digit authenticator code. Should return true or false.
@@ -143,7 +173,10 @@ const rules = {
     : (mode === 'register' && v.length < 8 ? 'Use at least 8 characters' : ''),
 
   // Must match the first password box
-  pw2: v => v === $('#pw').value ? '' : "Passwords don't match"
+  pw2: v => v === $('#pw').value ? '' : "Passwords don't match",
+  'admin-code': v => needsSuperAdminCode() && v.trim() !== 'LIMPOPO-ADMIN'
+    ? 'Enter the correct Super Admin access code'
+    : ''
 };
 
 // Roles that must also give a team name.
@@ -160,6 +193,7 @@ const selectedRole = () => {
 // True when the team name question must be asked:
 // registering AND the role is one of TEAM_ROLES
 const needsTeam = () => mode === 'register' && TEAM_ROLES.includes(selectedRole());
+const needsSuperAdminCode = () => mode === 'register' && selectedRole() === 'Super Admin';
 
 // Which fields must be checked in each mode
 const fieldsFor = () => {
@@ -169,6 +203,7 @@ const fieldsFor = () => {
   const fields = ['photo', 'fullname', 'email', 'job', 'org', 'about', 'skills',
                   'linkedin', 'facebook', 'github', 'website', 'pw', 'pw2'];
   if (needsTeam()) fields.splice(fields.indexOf('email') + 1, 0, 'team');   // team name sits under email
+  if (needsSuperAdminCode()) fields.splice(fields.indexOf('email') + 1, 0, 'admin-code');
   return fields;
 };
 
@@ -256,6 +291,13 @@ function updateTeamField(){
   if (!visible){
     $('#e-team').textContent = '';
     $('#team').setAttribute('aria-invalid', 'false');
+  }
+
+  const adminVisible = needsSuperAdminCode();
+  $('#admin-code-field').hidden = !adminVisible;
+  if (!adminVisible){
+    $('#e-admin-code').textContent = '';
+    $('#admin-code').setAttribute('aria-invalid', 'false');
   }
 }
 
@@ -753,7 +795,7 @@ $('#form').addEventListener('reset', () => setTimeout(resetProfile, 0));
 
 // Fields to check on each step ("Next" only moves on when these are valid)
 const STEP_FIELDS = {
-  1: () => ['photo', 'fullname', 'email'],
+  1: () => ['photo', 'fullname', 'email'].concat(needsSuperAdminCode() ? ['admin-code'] : []),
   2: () => (needsTeam() ? ['team'] : []).concat(['job', 'org', 'about', 'skills']),
   3: () => ['linkedin', 'facebook', 'github', 'website', 'pw', 'pw2']
 };

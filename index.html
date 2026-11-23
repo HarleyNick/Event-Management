@@ -125,6 +125,13 @@
           <p class="err" id="e-email"></p>
         </div>
 
+        <!-- Super Admin registration only -->
+        <div class="field reg" id="admin-code-field" data-step="1" hidden>
+          <label class="l" for="admin-code">Super Admin access code</label>
+          <input class="t" id="admin-code" autocomplete="off" placeholder="Enter the organizer access code">
+          <p class="err" id="e-admin-code"></p>
+        </div>
+
         <!-- TEAM NAME (registration only, and only when the role is "Team").
              Not a "reg" element: JavaScript shows or hides it when a role is picked. -->
         <div class="field" id="team-field" data-step="2" hidden>
