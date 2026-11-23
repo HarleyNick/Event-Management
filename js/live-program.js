@@ -346,11 +346,11 @@ const STATE = {
 
 
 /* ==========================================================================
-   5. DOM: one registry for every hook in live-program.html
+   5. DOM: one registry for every hook in index.html
    ========================================================================== */
 const byId = (id) => document.getElementById(id);
 const DOM = {
-  // Parts that stay in live-program.html.
+  // Parts that stay in index.html.
   doc: document,
   win: window,
   root: document.documentElement,
@@ -669,29 +669,28 @@ const liveListHtml = () => {
   return list.length ? list.map(sessionCard).join("") : '<p class="empty-state u-text-soft">No sessions left in this view.</p>';
 };
 
-// Super Admin event setup: create a new event and list custom events that can be removed.
+// The Super Admin form for creating an event.
 function eventPanelHtml() {
   const mine = STATE.events.filter((x) => x.custom);
-  return `<section class="panel admin-card admin-events">
-    <header class="admin-section-head"><div><p class="admin-kicker">EVENT SETUP</p><h3>Create an event</h3><p class="u-text-soft">Publish another event and add it to the event switcher.</p></div><i class="admin-section-icon" data-lucide="layers" width="22" height="22" aria-hidden="true"></i></header>
-    <form class="form admin-form form--event" id="eventForm" novalidate>
+  return `<section class="panel panel--narrow admin-grid__item admin-grid__item--events"><h3>Create and publish the next event</h3>
+    <p class="u-text-soft">Fill this in and publish. The event is added to the event switcher in the sidebar straight away.</p>
+    <form class="form form--event" id="eventForm" novalidate>
       <label class="field">Event name<input class="input" name="name" placeholder="e.g. Pretoria Robotics Challenge"></label>
-      <label class="field">Short name<input class="input" name="short" placeholder="Name shown in menus"></label>
+      <label class="field">Short name (shown in menus)<input class="input" name="short" placeholder="e.g. Robotics Challenge"></label>
       <div class="form__split"><label class="field">Starts<input class="input" type="datetime-local" name="start"></label><label class="field">Code freeze<input class="input" type="datetime-local" name="due"></label></div>
       <label class="field">Description<textarea class="input" name="summary" rows="3" placeholder="A sentence or two about the event"></textarea></label>
       <label class="field">Tagline<input class="input" name="tag" placeholder="e.g. 48-Hour Build Sprint"></label>
       <label class="field">Location<input class="input" name="place" placeholder="e.g. Sandton Convention Centre"></label>
-      <label class="field">Tracks<input class="input" name="tracks" placeholder="Separate tracks with commas"></label>
-      <label class="field">Banner image URL <span class="u-text-soft">(optional)</span><input class="input" name="image" placeholder="https://example.com/banner.jpg"></label>
+      <label class="field">Tracks (separate with commas)<input class="input" name="tracks" placeholder="e.g. Robotics, AI, IoT"></label>
+      <label class="field">Banner image URL (optional)<input class="input" name="image" placeholder="https://example.com/banner.jpg"></label>
       <p class="form__error" id="eventError" role="alert"></p>
       <button class="btn btn--primary btn--center">Publish event</button>
     </form>
     ${STATE.evNote ? `<p class="notice" role="status">${esc(STATE.evNote)}</p>` : ""}
-    ${mine.length ? `<div class="admin-records"><h4>Your events</h4>${mine.map((x) => `<div class="admin-record"><span><b>${esc(x.short)}</b><small>${esc(x.date)}</small></span><button class="btn" type="button" data-action="remove-event" data-value="${x.id}">Remove</button></div>`).join("")}</div>` : ""}
-  </section>`;
+    ${mine.length ? `<div><p class="text-label u-text-soft">Events you added</p>${mine.map((x) => `<div class="admin-list__item admin-list__item--event"><span><b>${esc(x.short)}</b> <span class="u-text-soft">${esc(x.date)}</span></span><button class="btn" type="button" data-action="remove-event" data-value="${x.id}">Remove</button></div>`).join("")}</div>` : ""}</section>`;
 }
 
-// Super Admin schedule editor: create/edit keynotes and list this event's scheduled sessions.
+// The Super Admin can add, edit, or delete keynotes.
 function keynotePanelHtml() {
   const e = currentEvent(),
     now = Date.now(),
@@ -705,9 +704,9 @@ function keynotePanelHtml() {
     badge = v.badge || "auto",
     statusOf = (x) =>
       x.end <= now ? "Ended" : (x.badge === "off" ? false : x.badge === "live" ? true : x.start <= now) ? "Live now" : "Upcoming";
-  return `<section class="panel admin-card admin-keynotes">
-    <header class="admin-section-head"><div><p class="admin-kicker">PROGRAM SCHEDULE</p><h3>${editing ? "Edit keynote" : "Manage keynotes"}</h3><p class="u-text-soft">${editing ? "Update the details below." : `Add and schedule a keynote for ${esc(e.short)}.`}</p></div><i class="admin-section-icon" data-lucide="calendar" width="22" height="22" aria-hidden="true"></i></header>
-    <form class="form admin-form" id="keyForm" novalidate>
+  return `<section class="panel panel--narrow admin-grid__item admin-grid__item--keynotes"><h3>${editing ? "Edit keynote" : "Add Keynote"}</h3>
+    <p class="u-text-soft">${editing ? "Change the details and save. The program updates straight away." : "Fill this in and publish. It appears in Live program & keynotes for"} ${editing ? "" : `<strong class="u-text-strong">${esc(e.short)}</strong>.`}</p>
+    <form class="form" id="keyForm" novalidate>
       <label class="field">Title<input class="input" name="title" placeholder="e.g. Keynote: Autonomous Agent Swarms" value="${esc(v.title)}"></label>
       <div class="form__split"><label class="field">Stage / Track<select class="input" name="type">${TYPES.slice(1).map((t) => `<option${t === v.type ? " selected" : ""}>${t}</option>`).join("")}</select></label>
       <label class="field">Status badge<select class="input" name="badge"><option value="auto"${badge === "auto" ? " selected" : ""}>Automatic</option><option value="live"${badge === "live" ? " selected" : ""}>Always show LIVE NOW</option><option value="off"${badge === "off" ? " selected" : ""}>No badge</option></select></label></div>
@@ -721,9 +720,8 @@ function keynotePanelHtml() {
       <div class="cluster"><button class="btn btn--primary btn--center">${editing ? "Save changes" : "Publish keynote"}</button>${editing ? '<button class="btn" type="button" data-action="key-cancel">Cancel</button>' : ""}</div>
     </form>
     ${STATE.keyNote ? `<p class="notice" role="status">${esc(STATE.keyNote)}</p>` : ""}
-    ${list.length ? `<div class="admin-records"><h4>Scheduled keynotes <span>${list.length}</span></h4>${list.map((x) => `<div class="admin-record"><span class="admin-record__main"><b>${esc(x.title)}</b><small>${esc(x.type)} \u00B7 ${fmtWhen(x.start)} - ${clockShort(x.end)} \u00B7 ${statusOf(x)}</small></span>
-      <span class="admin-record__actions"><button class="btn" type="button" data-action="key-edit" data-value="${x.id}">Edit</button><button class="btn" type="button" data-action="key-delete" data-value="${x.id}">${STATE.delArm === x.id ? "Confirm delete" : "Delete"}</button></span></div>`).join("")}</div>` : '<p class="u-text-soft">No keynotes yet for this event.</p>'}
-  </section>`;
+    ${list.length ? `<div><p class="text-label u-text-soft">Keynotes in this event</p>${list.map((x) => `<div class="admin-list__item"><span class="admin-list__info"><b>${esc(x.title)}</b><br><span class="u-text-soft">${esc(x.type)} \u00B7 ${fmtWhen(x.start)} - ${clockShort(x.end)} \u00B7 ${statusOf(x)}</span></span>
+      <span class="admin-list__actions"><button class="btn" type="button" data-action="key-edit" data-value="${x.id}">Edit</button><button class="btn" type="button" data-action="key-delete" data-value="${x.id}">${STATE.delArm === x.id ? "Confirm delete" : "Delete"}</button></span></div>`).join("")}</div>` : '<p class="u-text-soft">No keynotes yet for this event.</p>'}</section>`;
 }
 
 const cardGrid = (cards, spaced) => `<div class="card-grid${withClass(spaced, "card-grid--spaced")}">${cards}</div>`;
@@ -767,31 +765,14 @@ const PAGES = {
     ),
 
   admin: () => {
-    const e = currentEvent(),
-      localDue = toLocalInput(new Date(e.dueAt).getTime()),
-      eventSessions = allSessions().filter((session) => !session.ev || session.ev === e.id).length;
-    return `<div class="admin-dashboard">
-      <header class="admin-hero">
-        <div><p class="admin-kicker">EVENT OPERATIONS</p><h2>Super Admin Console</h2><p class="u-text-soft">Manage your event, schedule and attendee updates from one place.</p></div>
-        <div class="admin-current-event"><span>MANAGING EVENT</span><strong>${esc(e.short)}</strong><span class="pill${withClass(e.open, "pill--ok")}">${e.open ? "Submissions open" : "Submissions closed"}</span></div>
-      </header>
-      <div class="admin-metrics">
-        <article class="admin-metric"><span>Program sessions</span><strong>${eventSessions}</strong><small>Scheduled for this event</small></article>
-        <article class="admin-metric"><span>Managed events</span><strong>${STATE.events.length}</strong><small>Available in the event switcher</small></article>
-        <article class="admin-metric"><span>Submission status</span><strong class="${e.open ? "admin-status-open" : "admin-status-closed"}">${e.open ? "Open" : "Closed"}</strong><small>For ${esc(e.short)}</small></article>
-      </div>
-      <section class="panel admin-card admin-settings">
-        <header class="admin-section-head"><div><p class="admin-kicker">EVENT CONFIGURATION</p><h3>Event settings</h3><p class="u-text-soft">Update the details attendees see across the portal.</p></div><i class="admin-section-icon" data-lucide="layers" width="22" height="22" aria-hidden="true"></i></header>
-        <div class="admin-settings-grid">
-          <div class="admin-setting"><div class="admin-setting__heading"><span class="admin-setting__icon"><i data-lucide="sparkles" width="18" height="18" aria-hidden="true"></i></span><div><h4>Program banner</h4><p class="u-text-soft">Use a public image URL for a custom banner.</p></div></div><label class="field">Banner image URL<input class="input" id="bannerImageInput" placeholder="https://example.com/banner.jpg" value="${e.image.startsWith("data:") ? "" : esc(e.image)}"></label><button class="btn btn--primary" data-action="update-banner">Update banner</button></div>
-          <div class="admin-setting"><div class="admin-setting__heading"><span class="admin-setting__icon"><i data-lucide="calendar" width="18" height="18" aria-hidden="true"></i></span><div><h4>Code freeze</h4><p class="u-text-soft">Choose when submissions close.</p></div></div><label class="field">Date and time<input class="input" type="datetime-local" data-change="due" value="${localDue}"></label><small class="admin-hint">The countdown updates automatically.</small></div>
-          <div class="admin-setting"><div class="admin-setting__heading"><span class="admin-setting__icon"><i data-lucide="triangle-alert" width="18" height="18" aria-hidden="true"></i></span><div><h4>Broadcast message</h4><p class="u-text-soft">Shown in the status bar for attendees.</p></div></div><label class="field">Message<input class="input" id="broadcastNoteInput" placeholder="Leave empty to use the countdown message" value="${esc(e.note || "")}"></label><button class="btn btn--primary" data-action="update-note">Update message</button></div>
-          <div class="admin-setting admin-submission-setting"><label class="field field--check"><input class="input input--check" type="checkbox" data-change="open"${e.open ? " checked" : ""}><span><b>Submissions are open</b><small>Attendees can submit while this setting is enabled.</small></span></label></div>
-        </div>
-        ${STATE.notice ? `<p class="notice" role="status">${STATE.notice}</p>` : ""}
-      </section>
-      <div class="admin-management-grid">${keynotePanelHtml()}${eventPanelHtml()}</div>
-    </div>`;
+    const e = currentEvent();
+    return `<div class="admin-grid"><section class="panel panel--narrow admin-grid__item admin-grid__item--settings"><p class="u-text-soft">Changes apply to: <strong class="u-text-strong">${esc(e.short)}</strong></p>
+    <label class="field">Banner image URL<input class="input" id="bannerImageInput" placeholder="https://example.com/banner.jpg" value="${e.image.startsWith("data:") ? "" : esc(e.image)}"></label>
+    <div><button class="btn btn--primary" data-action="update-banner">Update banner</button></div>
+    <label class="field">Code freeze (date and time)<input class="input" type="datetime-local" data-change="due" value="${toLocalInput(new Date(e.dueAt).getTime())}"></label>
+    <label class="field">Broadcast message (shown in the red bar)<input class="input" id="broadcastNoteInput" placeholder="Leave empty for the automatic countdown message" value="${esc(e.note || "")}"></label>
+    <div><button class="btn btn--primary" data-action="update-note">Update message</button></div>
+    <label class="field field--check"><input class="input input--check" type="checkbox" data-change="open"${e.open ? " checked" : ""}> Submissions are open</label>${STATE.notice ? `<p class="notice" role="status">${STATE.notice}</p>` : ""}</section>${keynotePanelHtml()}${eventPanelHtml()}</div>`;
   },
 
   auth: () => {
@@ -833,7 +814,6 @@ function drawPage() {
   STATE.sessionSignature = sessionsSignature();
   show(DOM.banner, STATE.page !== "auth"); // the login form comes first, with no big banner pushing it down
   DOM.pageContent.innerHTML = PAGES[STATE.page]();
-  if (STATE.page === "admin") lucide.createIcons({ attrs: { "stroke-width": "1.75" } });
 }
 function drawAll() {
   drawSidebar();
