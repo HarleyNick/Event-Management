@@ -1031,6 +1031,116 @@ textarea.input { resize: vertical; line-height: var(--lh-control); }
 .rsvp-button.is-done { color: var(--color-ok); border-color: var(--color-ok); }
 
 /* ---------- Super Admin console ---------- */
+.admin-hero {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    "copy event"
+    "metrics metrics";
+  gap: var(--space-18) var(--space-24);
+  margin: var(--space-20) var(--space-0) var(--space-0);
+  padding: var(--space-40);
+  overflow: hidden;
+  border: var(--border-w) solid var(--color-line);
+  border-radius: var(--radius-16);
+  background:
+    radial-gradient(circle at 18% 0%, color-mix(in srgb, var(--color-accent) 24%, transparent), transparent 30rem),
+    linear-gradient(135deg, color-mix(in srgb, var(--color-violet) 13%, var(--color-panel)) 0%, var(--color-panel) 58%, color-mix(in srgb, var(--color-accent) 8%, var(--color-panel)) 100%);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
+}
+.admin-hero::before {
+  content: "";
+  position: absolute;
+  inset: var(--space-0);
+  pointer-events: none;
+  background:
+    linear-gradient(90deg, transparent 49.8%, var(--white-a18) 50%, transparent 50.2%),
+    linear-gradient(0deg, transparent 49.8%, var(--white-a18) 50%, transparent 50.2%);
+  background-size: 44px 44px;
+  opacity: 0.12;
+}
+.admin-hero__copy,
+.admin-hero__event,
+.admin-hero__metrics { position: relative; z-index: var(--z-base); }
+.admin-hero__copy { grid-area: copy; align-self: center; }
+.admin-hero__copy h1 {
+  margin: var(--space-6) var(--space-0) var(--space-10);
+  font: 800 clamp(2rem, 4vw, 3.2rem)/1 var(--font-heading);
+  letter-spacing: var(--ls-tight);
+}
+.admin-hero__copy p {
+  margin: var(--space-0);
+  color: color-mix(in srgb, var(--color-text) 70%, var(--color-text-soft));
+  font-size: var(--fs-125);
+}
+.admin-hero__eyebrow,
+.admin-hero__label,
+.admin-metric__label {
+  font: 700 var(--fs-78)/var(--lh-small) var(--font-mono);
+  letter-spacing: var(--ls-caption);
+  text-transform: uppercase;
+  color: var(--color-accent);
+}
+.admin-hero__event {
+  grid-area: event;
+  align-self: center;
+  min-width: 260px;
+  display: grid;
+  gap: var(--space-6);
+  padding: var(--space-20);
+  border: var(--border-w) solid var(--color-line);
+  border-radius: var(--radius-12);
+  background: color-mix(in srgb, var(--color-panel) 76%, transparent);
+}
+.admin-hero__event strong {
+  font: 800 var(--fs-125)/var(--lh-small) var(--font-heading);
+  margin-bottom: var(--space-6);
+}
+.admin-hero__status {
+  width: fit-content;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-6);
+  min-height: 34px;
+  padding: var(--space-4) var(--space-10);
+  border: var(--border-w) solid var(--color-accent);
+  border-radius: var(--radius-6);
+  color: var(--color-accent);
+  font: 700 var(--fs-78)/var(--lh-small) var(--font-mono);
+  letter-spacing: var(--ls-label);
+}
+.admin-hero__status.is-open {
+  color: var(--color-violet);
+  border-color: var(--color-violet);
+  background: color-mix(in srgb, var(--color-violet) 8%, transparent);
+}
+.admin-hero__metrics {
+  grid-area: metrics;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-16);
+}
+.admin-metric {
+  min-height: 128px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: var(--space-20);
+  border: var(--border-w) solid var(--color-line);
+  border-radius: var(--radius-10);
+  background: color-mix(in srgb, var(--color-panel) 82%, transparent);
+}
+.admin-metric strong {
+  margin: var(--space-4) var(--space-0);
+  font: 800 var(--fs-150)/var(--lh-small) var(--font-heading);
+}
+.admin-metric > span:last-child {
+  color: var(--color-text-soft);
+  font-size: var(--fs-100);
+}
+.u-text-ok { color: var(--color-ok) !important; }
+.u-text-accent { color: var(--color-accent) !important; }
 .admin-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1042,6 +1152,35 @@ textarea.input { resize: vertical; line-height: var(--lh-control); }
 .admin-grid__item--settings { grid-column: 2; grid-row: 1; }
 .admin-grid__item--keynotes { grid-column: 1; grid-row: 1 / span 2; }
 .admin-grid__item--events { grid-column: 2; grid-row: 2; }
+.admin-section-heading {
+  display: flex;
+  align-items: center;
+  gap: var(--space-10);
+  margin-bottom: var(--space-4);
+}
+.admin-section-heading h3 { margin: 0; }
+.admin-section-heading__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  flex: none;
+  border: var(--border-w) solid var(--color-accent);
+  border-radius: var(--radius-12);
+  color: var(--color-accent);
+  background: color-mix(in srgb, var(--color-accent) 12%, var(--color-panel));
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--color-accent) 16%, transparent);
+}
+.admin-action {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-6);
+}
+.admin-action--danger:hover {
+  color: var(--color-accent);
+  border-color: var(--color-accent);
+}
 .admin-list__item {
   display: flex;
   flex-wrap: wrap;
@@ -1313,6 +1452,15 @@ body,
 }
 @media (max-width: 900px) {
   /* On tablets, put the admin boxes in one column and reduce the side space. */
+  .admin-hero {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "copy"
+      "event"
+      "metrics";
+    padding: var(--space-28);
+  }
+  .admin-hero__event { width: 100%; min-width: 0; }
   .admin-grid { grid-template-columns: minmax(0, 1fr); }
   .admin-grid__item--settings,
   .admin-grid__item--keynotes,
@@ -1329,6 +1477,10 @@ body,
 @media (max-width: 560px) {
   /* Put the event form fields below each other so date controls are easier to use. */
   .form--event .form__split { grid-template-columns: 1fr; }
+  .admin-hero { padding: var(--space-20); }
+  .admin-hero__copy h1 { font-size: var(--fs-150); }
+  .admin-hero__metrics { grid-template-columns: 1fr; }
+  .admin-metric { min-height: 104px; }
 }
 @media (max-width: 420px) {
   /* Make the countdown smaller on very small phones. */

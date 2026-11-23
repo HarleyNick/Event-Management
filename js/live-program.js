@@ -104,6 +104,17 @@ const ICONS = {
   layers: '<path d="m12 2 10 5-10 5L2 7zM2 17l10 5 10-5M2 12l10 5 10-5"/>',
   x: '<path d="M18 6 6 18M6 6l12 12"/>',
   out: '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/>',
+  image:
+    '<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/>',
+  plus: '<path d="M12 5v14M5 12h14"/>',
+  mic:
+    '<rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 19v3M8 22h8"/>',
+  event:
+    '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/><path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"/>',
+  edit:
+    '<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4z"/>',
+  trash:
+    '<path d="M3 6h18M8 6V3h8v3M19 6l-1 15H6L5 6M10 11v6M14 11v6"/>',
   alert:
     '<path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0zM12 9v4M12 17h.01"/>',
 };
@@ -672,7 +683,7 @@ const liveListHtml = () => {
 // The Super Admin form for creating an event.
 function eventPanelHtml() {
   const mine = STATE.events.filter((x) => x.custom);
-  return `<section class="panel panel--narrow admin-grid__item admin-grid__item--events"><h3>Create and publish the next event</h3>
+  return `<section class="panel panel--narrow admin-grid__item admin-grid__item--events"><div class="admin-section-heading"><span class="admin-section-heading__icon">${svg("event", 21)}</span><h3>Create and publish the next event</h3></div>
     <p class="u-text-soft">Fill this in and publish. The event is added to the event switcher in the sidebar straight away.</p>
     <form class="form form--event" id="eventForm" novalidate>
       <label class="field">Event name<input class="input" name="name" placeholder="e.g. Pretoria Robotics Challenge"></label>
@@ -684,10 +695,10 @@ function eventPanelHtml() {
       <label class="field">Tracks (separate with commas)<input class="input" name="tracks" placeholder="e.g. Robotics, AI, IoT"></label>
       <label class="field">Banner image URL (optional)<input class="input" name="image" placeholder="https://example.com/banner.jpg"></label>
       <p class="form__error" id="eventError" role="alert"></p>
-      <button class="btn btn--primary btn--center">Publish event</button>
+      <button class="btn btn--primary btn--center">${svg("plus", 17)} Publish event</button>
     </form>
     ${STATE.evNote ? `<p class="notice" role="status">${esc(STATE.evNote)}</p>` : ""}
-    ${mine.length ? `<div><p class="text-label u-text-soft">Events you added</p>${mine.map((x) => `<div class="admin-list__item admin-list__item--event"><span><b>${esc(x.short)}</b> <span class="u-text-soft">${esc(x.date)}</span></span><button class="btn" type="button" data-action="remove-event" data-value="${x.id}">Remove</button></div>`).join("")}</div>` : ""}</section>`;
+    ${mine.length ? `<div><p class="text-label u-text-soft">Events you added</p>${mine.map((x) => `<div class="admin-list__item admin-list__item--event"><span><b>${esc(x.short)}</b> <span class="u-text-soft">${esc(x.date)}</span></span><button class="btn admin-action" type="button" data-action="remove-event" data-value="${x.id}">${svg("trash", 16)} Remove</button></div>`).join("")}</div>` : ""}</section>`;
 }
 
 // The Super Admin can add, edit, or delete keynotes.
@@ -704,7 +715,7 @@ function keynotePanelHtml() {
     badge = v.badge || "auto",
     statusOf = (x) =>
       x.end <= now ? "Ended" : (x.badge === "off" ? false : x.badge === "live" ? true : x.start <= now) ? "Live now" : "Upcoming";
-  return `<section class="panel panel--narrow admin-grid__item admin-grid__item--keynotes"><h3>${editing ? "Edit keynote" : "Add Keynote"}</h3>
+  return `<section class="panel panel--narrow admin-grid__item admin-grid__item--keynotes"><div class="admin-section-heading"><span class="admin-section-heading__icon">${svg("mic", 21)}</span><h3>${editing ? "Edit keynote" : "Add keynote"}</h3></div>
     <p class="u-text-soft">${editing ? "Change the details and save. The program updates straight away." : "Fill this in and publish. It appears in Live program & keynotes for"} ${editing ? "" : `<strong class="u-text-strong">${esc(e.short)}</strong>.`}</p>
     <form class="form" id="keyForm" novalidate>
       <label class="field">Title<input class="input" name="title" placeholder="e.g. Keynote: Autonomous Agent Swarms" value="${esc(v.title)}"></label>
@@ -717,11 +728,11 @@ function keynotePanelHtml() {
       <div class="form__split"><label class="field">Speaker name<input class="input" name="speaker" placeholder="e.g. Dr. Aris Thorne" value="${esc(speaker)}"></label><label class="field">Organization<input class="input" name="org" placeholder="e.g. Google DeepMind" value="${esc(org)}"></label></div>
       <label class="field field--check"><input class="input input--check" type="checkbox" name="rsvp"${v.rsvp === false ? "" : " checked"}> Show the \u201CSave my seat\u201D button</label>
       <p class="form__error" id="keyError" role="alert"></p>
-      <div class="cluster"><button class="btn btn--primary btn--center">${editing ? "Save changes" : "Publish keynote"}</button>${editing ? '<button class="btn" type="button" data-action="key-cancel">Cancel</button>' : ""}</div>
+      <div class="cluster"><button class="btn btn--primary btn--center">${svg(editing ? "edit" : "plus", 17)} ${editing ? "Save changes" : "Publish keynote"}</button>${editing ? '<button class="btn" type="button" data-action="key-cancel">' + svg("x", 16) + " Cancel</button>" : ""}</div>
     </form>
     ${STATE.keyNote ? `<p class="notice" role="status">${esc(STATE.keyNote)}</p>` : ""}
     ${list.length ? `<div><p class="text-label u-text-soft">Keynotes in this event</p>${list.map((x) => `<div class="admin-list__item"><span class="admin-list__info"><b>${esc(x.title)}</b><br><span class="u-text-soft">${esc(x.type)} \u00B7 ${fmtWhen(x.start)} - ${clockShort(x.end)} \u00B7 ${statusOf(x)}</span></span>
-      <span class="admin-list__actions"><button class="btn" type="button" data-action="key-edit" data-value="${x.id}">Edit</button><button class="btn" type="button" data-action="key-delete" data-value="${x.id}">${STATE.delArm === x.id ? "Confirm delete" : "Delete"}</button></span></div>`).join("")}</div>` : '<p class="u-text-soft">No keynotes yet for this event.</p>'}</section>`;
+      <span class="admin-list__actions"><button class="btn admin-action" type="button" data-action="key-edit" data-value="${x.id}">${svg("edit", 16)} Edit</button><button class="btn admin-action admin-action--danger" type="button" data-action="key-delete" data-value="${x.id}">${svg("trash", 16)} ${STATE.delArm === x.id ? "Confirm delete" : "Delete"}</button></span></div>`).join("")}</div>` : '<p class="u-text-soft">No keynotes yet for this event.</p>'}</section>`;
 }
 
 const cardGrid = (cards, spaced) => `<div class="card-grid${withClass(spaced, "card-grid--spaced")}">${cards}</div>`;
@@ -766,12 +777,44 @@ const PAGES = {
 
   admin: () => {
     const e = currentEvent();
-    return `<div class="admin-grid"><section class="panel panel--narrow admin-grid__item admin-grid__item--settings"><p class="u-text-soft">Changes apply to: <strong class="u-text-strong">${esc(e.short)}</strong></p>
+    const programSessions = allSessions().filter((session) => !session.ev || session.ev === e.id).length;
+    const managedEvents = STATE.events.length;
+    const submissionState = e.open ? "Open" : "Closed";
+    return `<section class="admin-hero" aria-label="Super Admin Console overview">
+      <div class="admin-hero__copy">
+        <span class="admin-hero__eyebrow">EVENT OPERATIONS</span>
+        <h1>Super Admin Console</h1>
+        <p>Manage your event, schedule and attendee updates from one place.</p>
+      </div>
+      <aside class="admin-hero__event" aria-label="Managing event">
+        <span class="admin-hero__label">MANAGING EVENT</span>
+        <strong>${esc(e.short)}</strong>
+        <span class="admin-hero__status${withClass(e.open, "is-open")}">${svg(e.open ? "unlock" : "lock", 12)} SUBMISSIONS ${submissionState.toUpperCase()}</span>
+      </aside>
+      <div class="admin-hero__metrics">
+        <article class="admin-metric">
+          <span class="admin-metric__label">PROGRAM SESSIONS</span>
+          <strong>${programSessions}</strong>
+          <span>Scheduled for this event</span>
+        </article>
+        <article class="admin-metric">
+          <span class="admin-metric__label">MANAGED EVENTS</span>
+          <strong>${managedEvents}</strong>
+          <span>Available in the event switcher</span>
+        </article>
+        <article class="admin-metric">
+          <span class="admin-metric__label">SUBMISSION STATUS</span>
+          <strong class="${e.open ? "u-text-ok" : "u-text-accent"}">${submissionState}</strong>
+          <span>For ${esc(e.short)}</span>
+        </article>
+      </div>
+    </section>
+    <div class="admin-grid"><section class="panel panel--narrow admin-grid__item admin-grid__item--settings"><div class="admin-section-heading"><span class="admin-section-heading__icon">${svg("admin", 21)}</span><h3>Program settings</h3></div><p class="u-text-soft">Changes apply to: <strong class="u-text-strong">${esc(e.short)}</strong></p>
     <label class="field">Banner image URL<input class="input" id="bannerImageInput" placeholder="https://example.com/banner.jpg" value="${e.image.startsWith("data:") ? "" : esc(e.image)}"></label>
-    <div><button class="btn btn--primary" data-action="update-banner">Update banner</button></div>
+    <div><button class="btn btn--primary" data-action="update-banner">${svg("image", 17)} Update banner</button></div>
     <label class="field">Code freeze (date and time)<input class="input" type="datetime-local" data-change="due" value="${toLocalInput(new Date(e.dueAt).getTime())}"></label>
     <label class="field">Broadcast message (shown in the red bar)<input class="input" id="broadcastNoteInput" placeholder="Leave empty for the automatic countdown message" value="${esc(e.note || "")}"></label>
-    <div><button class="btn btn--primary" data-action="update-note">Update message</button></div>
+    <div><button class="btn btn--primary" data-action="update-note">${svg("send", 17)} Update message</button></div>
     <label class="field field--check"><input class="input input--check" type="checkbox" data-change="open"${e.open ? " checked" : ""}> Submissions are open</label>${STATE.notice ? `<p class="notice" role="status">${STATE.notice}</p>` : ""}</section>${keynotePanelHtml()}${eventPanelHtml()}</div>`;
   },
 
