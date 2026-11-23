@@ -1317,6 +1317,49 @@ textarea.input { resize: vertical; line-height: var(--lh-control); }
 .directory-resource-list small { color: var(--color-text-soft); }
 .directory-resource-list > b { color: var(--color-text-soft); }
 .directory-quiet-label { color: var(--color-text-soft); }
+.public-notice-board {
+  display: grid;
+  gap: var(--space-20);
+  max-width: 1080px;
+  margin: var(--space-24) auto;
+}
+.public-notice-board__panel h1,
+.public-notice-board__panel h2 { margin: var(--space-0); }
+.public-meal-schedule {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-12);
+}
+.public-meal {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-12);
+  padding: var(--space-16);
+  border: var(--border-w) solid var(--color-line);
+  border-radius: var(--radius-12);
+  background: var(--color-panel-alt);
+}
+.public-meal__icon {
+  width: 36px;
+  height: 36px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-10);
+  background: color-mix(in srgb, var(--color-accent) 12%, var(--color-panel));
+  color: var(--color-accent);
+}
+.public-meal h2 { margin-bottom: var(--space-6) !important; font-size: var(--fs-100); }
+.public-meal time { color: var(--color-accent); font: 700 var(--fs-100) var(--font-mono); }
+.public-meal p { margin: var(--space-4) var(--space-0) var(--space-0); color: var(--color-text-soft); }
+.public-announcements article {
+  padding: var(--space-16) var(--space-0);
+  border-bottom: var(--border-w) solid var(--color-line);
+}
+.public-announcements article:last-child { padding-bottom: var(--space-0); border-bottom: 0; }
+.public-announcements h3 { margin: var(--space-0) var(--space-0) var(--space-6); }
+.public-announcements p { margin: var(--space-0) var(--space-0) var(--space-8); color: var(--color-text-soft); white-space: pre-line; }
+.public-announcements small { color: var(--color-text-soft); }
 .directory-broadcast {
   border-color: color-mix(in srgb, var(--color-accent) 40%, var(--color-line));
   background: color-mix(in srgb, var(--color-accent) 10%, var(--color-panel));
@@ -1853,6 +1896,42 @@ textarea.input { resize: vertical; line-height: var(--lh-control); }
 .admin-list__item--event { gap: var(--space-10); margin-top: var(--space-8); }
 .admin-list__info { min-width: 0; }
 .admin-list__actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-6); }
+.admin-grid__item--meal-schedule,
+.admin-grid__item--resources { grid-column: 1 / -1; }
+.meal-schedule-admin { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-12); }
+.meal-schedule-admin__item {
+  min-width: 0;
+  margin: 0;
+  padding: var(--space-14);
+  border: var(--border-w) solid var(--color-line);
+  border-radius: var(--radius-10);
+}
+.meal-schedule-admin__item legend { padding: 0 var(--space-6); font-weight: 700; }
+.resource-admin-list { display: grid; gap: var(--space-12); margin: var(--space-20) var(--space-0) var(--space-0); padding: 0; list-style: none; }
+.resource-admin-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-12);
+  min-width: 0;
+  padding: var(--space-12);
+  border: var(--border-w) solid var(--color-line);
+  border-radius: var(--radius-10);
+  background: var(--color-panel-alt);
+}
+.resource-admin-row.is-dragging { opacity: .45; }
+.resource-admin-row__info { display: grid; flex: 1; min-width: 140px; gap: var(--space-4); overflow-wrap: anywhere; }
+.resource-admin-row__info small { color: var(--color-text-soft); }
+.resource-admin-grip {
+  flex: none;
+  border: 0;
+  background: transparent;
+  color: var(--color-text-soft);
+  cursor: grab;
+  font-size: var(--fs-150);
+  touch-action: none;
+}
+.resource-admin-grip:active { cursor: grabbing; }
+.resource-admin-actions { display: flex; flex-wrap: wrap; gap: var(--space-6); }
 
 /* ---------- Floating Mini Q&A (a round bubble that morphs into the panel) ---------- */
 /* This needs to stay on top so the opened Q&A box and close button are usable. */
@@ -2131,7 +2210,9 @@ body,
   .admin-grid__item--settings,
   .admin-grid__item--keynotes,
   .admin-grid__item--events,
-  .admin-grid__item--notices { grid-column: auto; grid-row: auto; }
+  .admin-grid__item--notices,
+  .admin-grid__item--meal-schedule,
+  .admin-grid__item--resources { grid-column: auto; grid-row: auto; }
   .page-header, .page, .broadcast, .banner {
     padding-left: var(--page-pad-x-sm);
     padding-right: var(--page-pad-x-sm);
@@ -2150,6 +2231,8 @@ body,
   .directory-featured-members,
   .directory-side { grid-template-columns: 1fr; }
   .directory-main-grid { grid-template-columns: 1fr; }
+  .public-meal-schedule,
+  .meal-schedule-admin { grid-template-columns: 1fr; }
   .directory-panel { padding: var(--space-18); }
   .directory-actions { flex-direction: column; }
   .directory-actions .directory-button { width: 100%; }
@@ -2171,6 +2254,9 @@ body,
   .admin-hero__copy h1 { font-size: var(--fs-150); }
   .admin-hero__metrics { grid-template-columns: 1fr; }
   .admin-metric { min-height: 104px; }
+  .resource-admin-row { flex-wrap: wrap; }
+  .resource-admin-row__info { flex-basis: calc(100% - 60px); }
+  .resource-admin-actions { width: 100%; justify-content: flex-end; }
 }
 @media (max-width: 420px) {
   /* Make the countdown smaller on very small phones. */

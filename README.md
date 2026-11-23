@@ -8,7 +8,7 @@
 - New accounts are registered in the browser; sign-in uses those registered credentials.
 - Successful login continues to `live-program.html`.
 - Logging out from the live page clears its active session and returns to `index.html`.
-- The live page shows menu entries according to the signed-in role. The Team Directory and Super Admin console are available to their permitted roles; Mentor 1-on-1 hub and Judging portal remain placeholders.
-- Events and program sessions start empty. Super Admins can publish events, manage their settings, add keynotes, remove events, and manage notice-board messages. Published notices appear in the Team Directory. Accounts and event data are stored in the current browser.
+- The live page shows menu entries according to the signed-in role. The Public Notice Board is available to every account, including guests; the Team Directory and Super Admin console remain role-restricted. Mentor 1-on-1 hub and Judging portal are placeholders.
+- Events and program sessions start empty. Super Admins can publish events, manage settings and keynotes, manage public and private notices, update the coder meal schedule, and manage event-specific Team Directory resources. Accounts and event data are stored in the current browser.
 - Authentication and role checks are client-side only; production use requires server-side authentication and authorization.
 - Shared page styles and scripts are in `css/` and `js/`; the Limpopo Dev Ecosystem logo is in `assets/`.

@@ -25,7 +25,10 @@ const CONFIG = {
   storage: {
     events: "portal-events-v3", // Super Admin edits to events survive a refresh
     keynotes: "portal-keynotes-v1", // added / edited / deleted keynotes
-    notices: "portal-notice-board-v1",
+    publicNotices: "portal-public-notices-v1",
+    privateNotices: "portal-notice-board-v1",
+    mealSchedule: "portal-coder-meal-schedule-v1",
+    teamResources: "portal-team-resources-v1",
     accounts: "portal-accounts-v1",
     session: "portal-session-v1",
   },
@@ -84,6 +87,8 @@ const ICONS = {
   mentors: '<circle cx="12" cy="12" r="10"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3M12 17h.01"/>',
   teams:
     '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8"/>',
+  notices:
+    '<path d="M3 11v2a1 1 0 0 0 1 1h2l5 4V6L6 10H4a1 1 0 0 0-1 1z"/><path d="M15 9a4 4 0 0 1 0 6M18 6a8 8 0 0 1 0 12"/>',
   judging: '<circle cx="12" cy="8" r="6"/><path d="M15.5 13.5 17 22l-5-3-5 3 1.5-8.5"/>',
   admin: '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>',
   auth: '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6M22 11h-6"/>',
@@ -126,6 +131,7 @@ const ROLES = {
 // The menu items.
 const MENU = [
   { id: "live", label: "Live program & keynotes", hint: "Talks, workshops and questions" },
+  { id: "notices", label: "Notice Board", hint: "Daily meals and public announcements" },
   { id: "mentors", label: "Mentor 1-on-1 hub", hint: "Get help from an expert" },
   { id: "teams", label: "Team directory", hint: "See all teams" },
   { id: "judging", label: "Judging portal", hint: "Score the projects" },
@@ -137,14 +143,28 @@ const PLACEHOLDER_NAV_IDS = new Set(["mentors", "judging"]);
 const SIGNUP_ROLES = ["attendee", "mentor", "team", "judge", "superadmin"]; // roles a person can pick when registering
 // This shows which menus each account role can open.
 const ALLOWED = {
-  guest: ["live", "auth"],
-  attendee: ["live", "auth"],
-  mentor: ["live", "mentors", "auth"],
-  team: ["live", "mentors", "teams", "auth"],
-  judge: ["live", "judging", "auth"],
-  superadmin: ["live", "mentors", "teams", "judging", "admin", "auth"],
+  guest: ["live", "notices", "auth"],
+  attendee: ["live", "notices", "auth"],
+  mentor: ["live", "notices", "mentors", "auth"],
+  team: ["live", "notices", "mentors", "teams", "auth"],
+  judge: ["live", "notices", "judging", "auth"],
+  superadmin: ["live", "notices", "mentors", "teams", "judging", "admin", "auth"],
 };
 const TYPES = ["All", "Main Stage", "Workshop Lab", "Mentor Pit", "Lightning Talks"];
+const MEALS = [
+  { id: "breakfast", label: "Breakfast" },
+  { id: "lunch", label: "Lunch" },
+  { id: "snack", label: "Snack" },
+  { id: "dinner", label: "Dinner" },
+];
+const DEFAULT_MEAL_SCHEDULE = Object.fromEntries(MEALS.map(({ id }) => [id, { time: "", details: "" }]));
+const DEFAULT_TEAM_RESOURCES = [
+  { id: "mdn", title: "MDN Web Docs", description: "Beginner-friendly lessons for HTML, CSS and JavaScript.", url: "https://developer.mozilla.org/en-US/docs/Learn", badge: "⌘", tone: "violet" },
+  { id: "w3schools", title: "W3Schools", description: "Simple examples to practise web development basics.", url: "https://www.w3schools.com/", badge: "W3", tone: "green" },
+  { id: "owasp", title: "OWASP Top 10", description: "Common web application security risks.", url: "https://owasp.org/www-project-top-ten/", badge: "OW", tone: "amber" },
+  { id: "github", title: "GitHub Guides", description: "Learn how to save code and collaborate as a team.", url: "https://docs.github.com/en/get-started", badge: "⌘", tone: "dark" },
+  { id: "vscode", title: "Visual Studio Code", description: "Editor setup, extensions and beginner documentation.", url: "https://code.visualstudio.com/docs", badge: "VS", tone: "violet" },
+];
 
 // A sample banner picture until a real photo is added.
 const placeholderBanner = () =>
@@ -173,10 +193,19 @@ const STATE = {
   delArm: null, // keynote waiting for "Confirm delete"
   keyNote: "",
   notice: "",
-  noticeBoard: loadNotices(),
-  noticeBoardNote: "",
-  editingNoticeId: null,
-  deleteNoticeId: null,
+  publicNotices: loadNotices(CONFIG.storage.publicNotices),
+  privateNotices: loadNotices(CONFIG.storage.privateNotices),
+  mealSchedule: loadMealSchedule(),
+  teamResources: loadTeamResources(),
+  publicNoticeNote: "",
+  privateNoticeNote: "",
+  editingPublicNoticeId: null,
+  editingPrivateNoticeId: null,
+  deletePublicNoticeId: null,
+  deletePrivateNoticeId: null,
+  mealScheduleNote: "",
+  teamResourceNote: "",
+  draggingResourceId: null,
   evNote: "",
   authMode: "login",
   reserved: [],
@@ -322,9 +351,9 @@ function saveKeynotes() {
     /* ignore */
   }
 }
-function loadNotices() {
+function loadNotices(key) {
   try {
-    const saved = JSON.parse(localStorage.getItem(CONFIG.storage.notices) || "[]");
+    const saved = JSON.parse(localStorage.getItem(key) || "[]");
     if (!Array.isArray(saved)) return [];
     return saved.filter(
       (notice) =>
@@ -332,19 +361,101 @@ function loadNotices() {
         typeof notice.id === "string" &&
         typeof notice.title === "string" &&
         typeof notice.message === "string" &&
-        typeof notice.createdAt === "string",
+        typeof notice.createdAt === "string" &&
+        !Number.isNaN(new Date(notice.createdAt).getTime()),
     );
   } catch {
     return [];
   }
 }
-function saveNotices() {
+function saveNotices(key, notices) {
   try {
-    localStorage.setItem(CONFIG.storage.notices, JSON.stringify(STATE.noticeBoard));
+    localStorage.setItem(key, JSON.stringify(notices));
     return true;
   } catch {
     return false;
   }
+}
+function loadMealSchedule() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(CONFIG.storage.mealSchedule) || "{}");
+    if (!saved || typeof saved !== "object" || Array.isArray(saved)) return { ...DEFAULT_MEAL_SCHEDULE };
+    return Object.fromEntries(
+      MEALS.map(({ id }) => {
+        const meal = saved[id] && typeof saved[id] === "object" ? saved[id] : {};
+        const time = typeof meal.time === "string" && /^([01]\d|2[0-3]):[0-5]\d$/.test(meal.time) ? meal.time : "";
+        return [id, { time, details: typeof meal.details === "string" ? meal.details : "" }];
+      }),
+    );
+  } catch {
+    return { ...DEFAULT_MEAL_SCHEDULE };
+  }
+}
+function saveMealSchedule() {
+  try {
+    localStorage.setItem(CONFIG.storage.mealSchedule, JSON.stringify(STATE.mealSchedule));
+    return true;
+  } catch {
+    return false;
+  }
+}
+function isSafeResourceUrl(value) {
+  try {
+    const url = new URL(value);
+    return url.protocol === "http:" || url.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+function loadTeamResources() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(CONFIG.storage.teamResources) || "{}");
+    if (!saved || typeof saved !== "object" || Array.isArray(saved)) return {};
+    return Object.fromEntries(
+      Object.entries(saved).map(([eventId, resources]) => [
+        eventId,
+        Array.isArray(resources)
+          ? resources
+              .filter(
+                (resource) =>
+                resource &&
+                typeof resource.id === "string" &&
+                typeof resource.title === "string" &&
+                typeof resource.description === "string" &&
+                typeof resource.badge === "string" &&
+                isSafeResourceUrl(resource.url),
+            )
+            .map((resource) => ({
+              ...resource,
+              tone: ["violet", "green", "amber", "dark"].includes(resource.tone) ? resource.tone : "violet",
+            }))
+          : [],
+      ]),
+    );
+  } catch {
+    return {};
+  }
+}
+function saveTeamResources() {
+  try {
+    localStorage.setItem(CONFIG.storage.teamResources, JSON.stringify(STATE.teamResources));
+    return true;
+  } catch {
+    return false;
+  }
+}
+const resourcesForEvent = (eventId = STATE.eventId) =>
+  eventId ? STATE.teamResources[eventId] || DEFAULT_TEAM_RESOURCES : DEFAULT_TEAM_RESOURCES;
+function persistTeamResources(eventId, resources, message) {
+  const previous = STATE.teamResources;
+  STATE.teamResources = { ...previous, [eventId]: resources };
+  if (!saveTeamResources()) {
+    STATE.teamResources = previous;
+    STATE.teamResourceNote = "Unable to save team resources. Browser storage is unavailable.";
+  } else {
+    STATE.teamResourceNote = message;
+  }
+  drawPage();
 }
 function updateEvent(patch) {
   const event = currentEvent();
@@ -620,20 +731,83 @@ function keynotePanelHtml() {
       <span class="admin-list__actions"><button class="btn admin-action" type="button" data-action="key-edit" data-value="${x.id}">${svg("edit", 16)} Edit</button><button class="btn admin-action admin-action--danger" type="button" data-action="key-delete" data-value="${x.id}">${svg("trash", 16)} ${STATE.delArm === x.id ? "Confirm delete" : "Delete"}</button></span></div>`).join("")}</div>` : '<p class="u-text-soft">No keynotes yet for this event.</p>'}</section>`;
 }
 
-function noticeBoardPanelHtml() {
-  const editing = STATE.noticeBoard.find((notice) => notice.id === STATE.editingNoticeId),
-    notices = [...STATE.noticeBoard].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-  return `<section class="panel panel--narrow admin-grid__item admin-grid__item--notices"><div class="admin-section-heading"><span class="admin-section-heading__icon">${svg("alert", 21)}</span><h3>${editing ? "Edit notice" : "Notice board management"}</h3></div>
-    <p class="u-text-soft">${editing ? "Update this notice for the team directory." : "Publish announcements that appear on the Team Directory notice board."}</p>
-    <form class="form" id="noticeForm" novalidate>
-      <label class="field">Title<input class="input" name="title" required maxlength="120" placeholder="e.g. Team registration closes Friday" value="${esc(editing ? editing.title : "")}"></label>
-      <label class="field">Message<textarea class="input" name="message" required rows="4" placeholder="Share the details teams need to know.">${esc(editing ? editing.message : "")}</textarea></label>
-      <p class="form__error" id="noticeBoardError" role="alert"></p>
-      <div class="cluster"><button class="btn btn--primary">${svg(editing ? "edit" : "send", 17)} ${editing ? "Save changes" : "Publish notice"}</button>${editing ? `<button class="btn" type="button" data-action="notice-cancel">${svg("x", 16)} Cancel</button>` : ""}</div>
+function noticeManagementPanelHtml(board) {
+  const isPublic = board === "public",
+    notices = isPublic ? STATE.publicNotices : STATE.privateNotices,
+    editingId = isPublic ? STATE.editingPublicNoticeId : STATE.editingPrivateNoticeId,
+    deleteId = isPublic ? STATE.deletePublicNoticeId : STATE.deletePrivateNoticeId,
+    editing = notices.find((notice) => notice.id === editingId),
+    sorted = [...notices].sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
+    prefix = isPublic ? "public" : "private",
+    label = isPublic ? "Public" : "Private",
+    note = isPublic ? STATE.publicNoticeNote : STATE.privateNoticeNote;
+  return `<section class="panel panel--narrow admin-grid__item admin-grid__item--notices"><div class="admin-section-heading"><span class="admin-section-heading__icon">${svg(isPublic ? "notices" : "teams", 21)}</span><h3>${editing ? "Edit" : "Manage"} ${label} Notice Board</h3></div>
+    <p class="u-text-soft">${isPublic ? "Announcements appear on the public Notice Board for every account." : "Team notices appear only inside the Team Directory."}</p>
+    <form class="form" id="${prefix}NoticeForm" novalidate>
+      <label class="field">Title<input class="input" name="title" required maxlength="120" placeholder="${isPublic ? "e.g. Welcome, coders!" : "e.g. Team stand-up moved to 10:00"}" value="${esc(editing ? editing.title : "")}"></label>
+      <label class="field">Message<textarea class="input" name="message" required rows="4" placeholder="Share the details people need to know.">${esc(editing ? editing.message : "")}</textarea></label>
+      <p class="form__error" id="${prefix}NoticeError" role="alert"></p>
+      <div class="cluster"><button class="btn btn--primary">${svg(editing ? "edit" : "send", 17)} ${editing ? "Save changes" : "Publish notice"}</button>${editing ? `<button class="btn" type="button" data-action="${prefix}-notice-cancel">${svg("x", 16)} Cancel</button>` : ""}</div>
     </form>
-    ${STATE.noticeBoardNote ? `<p class="notice" role="status">${esc(STATE.noticeBoardNote)}</p>` : ""}
-    ${notices.length ? `<div><p class="text-label u-text-soft">Published notices</p>${notices.map((notice) => `<div class="admin-list__item"><span class="admin-list__info"><b>${esc(notice.title)}</b><br><span class="u-text-soft">${esc(notice.message)}</span></span>
-      <span class="admin-list__actions"><button class="btn admin-action" type="button" data-action="notice-edit" data-value="${esc(notice.id)}">${svg("edit", 16)} Edit</button><button class="btn admin-action admin-action--danger" type="button" data-action="notice-delete" data-value="${esc(notice.id)}">${svg("trash", 16)} ${STATE.deleteNoticeId === notice.id ? "Confirm delete" : "Delete"}</button></span></div>`).join("")}</div>` : '<p class="u-text-soft">No notices have been published yet.</p>'}</section>`;
+    ${note ? `<p class="notice" role="status">${esc(note)}</p>` : ""}
+    ${sorted.length ? `<div><p class="text-label u-text-soft">Published ${label.toLowerCase()} notices</p>${sorted.map((notice) => `<div class="admin-list__item"><span class="admin-list__info"><b>${esc(notice.title)}</b><br><span class="u-text-soft">${esc(notice.message)}</span></span>
+      <span class="admin-list__actions"><button class="btn admin-action" type="button" data-action="${prefix}-notice-edit" data-value="${esc(notice.id)}">${svg("edit", 16)} Edit</button><button class="btn admin-action admin-action--danger" type="button" data-action="${prefix}-notice-delete" data-value="${esc(notice.id)}">${svg("trash", 16)} ${deleteId === notice.id ? "Confirm delete" : "Delete"}</button></span></div>`).join("")}</div>` : `<p class="u-text-soft">No ${label.toLowerCase()} notices have been published yet.</p>`}</section>`;
+}
+
+function mealSchedulePanelHtml() {
+  return `<section class="panel panel--narrow admin-grid__item admin-grid__item--meal-schedule"><div class="admin-section-heading"><span class="admin-section-heading__icon">${svg("cal", 21)}</span><h3>Coder Meal Schedule</h3></div>
+    <p class="u-text-soft">Set the daily meal times and optional location or notes shown on the Public Notice Board.</p>
+    <form class="form" id="mealScheduleForm" novalidate><div class="meal-schedule-admin">
+      ${MEALS.map(({ id, label }) => `<fieldset class="meal-schedule-admin__item"><legend>${label}</legend><label class="field">${label} time<input class="input" type="time" name="${id}Time" value="${esc(STATE.mealSchedule[id].time)}"></label><label class="field">Location or notes<input class="input" name="${id}Details" placeholder="Optional" value="${esc(STATE.mealSchedule[id].details)}"></label></fieldset>`).join("")}
+    </div><p class="form__error" id="mealScheduleError" role="alert"></p><button class="btn btn--primary">${svg("send", 17)} Save meal schedule</button></form>
+    ${STATE.mealScheduleNote ? `<p class="notice" role="status">${esc(STATE.mealScheduleNote)}</p>` : ""}</section>`;
+}
+
+function teamResourcesPanelHtml() {
+  const event = currentEvent();
+  if (!event)
+    return `<section class="panel panel--narrow admin-grid__item admin-grid__item--resources"><div class="admin-section-heading"><span class="admin-section-heading__icon">${svg("layers", 21)}</span><h3>Team Resources Management</h3></div><p class="empty-state u-text-soft">Publish or select an event to manage its team resources.</p></section>`;
+  const resources = resourcesForEvent(event.id);
+  return `<section class="panel panel--narrow admin-grid__item admin-grid__item--resources"><div class="admin-section-heading"><span class="admin-section-heading__icon">${svg("layers", 21)}</span><h3>Team Resources Management</h3></div>
+    <p class="u-text-soft">Changes apply to <strong class="u-text-strong">${esc(event.short)}</strong> and appear in that event's Team Directory. Drag rows to reorder them, or use the arrow buttons.</p>
+    <form class="form" id="teamResourceForm" novalidate>
+      <label class="field">Title<input class="input" name="title" required maxlength="100" placeholder="e.g. Project documentation"></label>
+      <label class="field">Description<input class="input" name="description" required maxlength="240" placeholder="A short explanation of this resource"></label>
+      <label class="field">URL<input class="input" type="url" name="url" required placeholder="https://example.com"></label>
+      <label class="field">Icon / badge text<input class="input" name="badge" required maxlength="8" placeholder="e.g. DOC"></label>
+      <p class="form__error" id="teamResourceError" role="alert"></p>
+      <button class="btn btn--primary">${svg("plus", 17)} Add resource</button>
+    </form>
+    ${STATE.teamResourceNote ? `<p class="notice" role="status">${esc(STATE.teamResourceNote)}</p>` : ""}
+    ${resources.length ? `<ol class="resource-admin-list" id="teamResourceAdminList" aria-label="Team resources for ${esc(event.short)}">${resources.map((resource, index) => `<li class="resource-admin-row" draggable="true" data-resource-id="${esc(resource.id)}">
+      <button class="resource-admin-grip" type="button" aria-label="Drag ${esc(resource.title)} to reorder">⠿</button><span class="directory-resource-icon directory-resource-icon--${esc(resource.tone || "violet")}">${esc(resource.badge)}</span>
+      <span class="resource-admin-row__info"><strong>${esc(resource.title)}</strong><small>${esc(resource.description)}</small><small>${esc(resource.url)}</small></span>
+      <span class="resource-admin-actions"><button class="btn admin-action" type="button" data-action="resource-move-up" data-value="${esc(resource.id)}" aria-label="Move ${esc(resource.title)} up"${index === 0 ? " disabled" : ""}>↑</button><button class="btn admin-action" type="button" data-action="resource-move-down" data-value="${esc(resource.id)}" aria-label="Move ${esc(resource.title)} down"${index === resources.length - 1 ? " disabled" : ""}>↓</button><button class="btn admin-action admin-action--danger" type="button" data-action="resource-delete" data-value="${esc(resource.id)}" aria-label="Delete ${esc(resource.title)}">${svg("trash", 16)} Delete</button></span>
+    </li>`).join("")}</ol>` : '<p class="u-text-soft">No resources are configured for this event.</p>'}</section>`;
+}
+
+function publicNoticeBoardHtml() {
+  const notices = [...STATE.publicNotices].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  return `<div class="public-notice-board">
+    <section class="directory-panel public-notice-board__panel">
+      <div class="directory-section-heading"><div><p class="directory-eyebrow">FOR CODERS · DAILY</p><h1>Public Notice Board</h1></div><span class="directory-pill">Meal schedule</span></div>
+      <p class="directory-notice-intro">Daily meal times for coders. Location and extra details are shown when available.</p>
+      <div class="public-meal-schedule">${MEALS.map(({ id, label }) => {
+        const meal = STATE.mealSchedule[id];
+        return `<article class="public-meal"><span class="public-meal__icon">${svg("cal", 18)}</span><div><h2>${label}</h2><time${meal.time ? ` datetime="${esc(meal.time)}"` : ""}>${meal.time ? esc(meal.time) : "Time to be announced"}</time>${meal.details ? `<p>${esc(meal.details)}</p>` : ""}</div></article>`;
+      }).join("")}</div>
+    </section>
+    <section class="directory-panel public-notice-board__panel">
+      <div class="directory-section-heading"><div><p class="directory-eyebrow">LATEST UPDATES</p><h2>Public announcements</h2></div><span class="directory-pill">${notices.length} ${notices.length === 1 ? "notice" : "notices"}</span></div>
+      ${notices.length ? `<div class="public-announcements">${notices.map((notice) => `<article><h3>${esc(notice.title)}</h3><p>${esc(notice.message)}</p><small>${esc(fmtWhen(new Date(notice.createdAt).getTime()))}</small></article>`).join("")}</div>` : '<p class="empty-state u-text-soft">No public announcements have been published yet.</p>'}
+    </section>
+  </div>`;
+}
+
+function teamResourceLinksHtml(resources) {
+  return resources.length
+    ? resources.map((resource) => `<a href="${esc(resource.url)}" target="_blank" rel="noopener"><span class="directory-resource-icon directory-resource-icon--${esc(resource.tone || "violet")}">${esc(resource.badge)}</span><span><strong>${esc(resource.title)}</strong><small>${esc(resource.description)}</small></span><b>↗</b></a>`).join("")
+    : '<p class="empty-state u-text-soft">No team resources have been added for this event yet.</p>';
 }
 
 const cardGrid = (cards, spaced) => `<div class="card-grid${withClass(spaced, "card-grid--spaced")}">${cards}</div>`;
@@ -655,7 +829,8 @@ const directoryMembers = () => directoryStorage.get("geekulchaExtraMembers").fil
 function teamDirectoryHtml() {
   const teams = directoryTeams(),
     members = directoryMembers(),
-    notices = [...STATE.noticeBoard].sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
+    notices = [...STATE.privateNotices].sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
+    resources = resourcesForEvent(),
     event = currentEvent(),
     broadcastDismissed = (() => {
       try { return localStorage.getItem("geekulchaBroadcastDismissed") === "1"; } catch { return false; }
@@ -689,18 +864,12 @@ function teamDirectoryHtml() {
         </section>
         <section class="directory-panel" id="directory-resources">
           <div class="directory-section-heading"><div><p class="directory-eyebrow">USEFUL LINKS</p><h2>Team resources</h2></div><span class="directory-quiet-label">Helpful tools &amp; guides</span></div>
-          <div class="directory-resource-list">
-            <a href="https://developer.mozilla.org/en-US/docs/Learn" target="_blank" rel="noopener"><span class="directory-resource-icon directory-resource-icon--violet">⌘</span><span><strong>MDN Web Docs</strong><small>Beginner-friendly lessons for HTML, CSS and JavaScript.</small></span><b>↗</b></a>
-            <a href="https://www.w3schools.com/" target="_blank" rel="noopener"><span class="directory-resource-icon directory-resource-icon--green">W3</span><span><strong>W3Schools</strong><small>Simple examples to practise web development basics.</small></span><b>↗</b></a>
-            <a href="https://owasp.org/www-project-top-ten/" target="_blank" rel="noopener"><span class="directory-resource-icon directory-resource-icon--amber">OW</span><span><strong>OWASP Top 10</strong><small>Common web application security risks.</small></span><b>↗</b></a>
-            <a href="https://docs.github.com/en/get-started" target="_blank" rel="noopener"><span class="directory-resource-icon directory-resource-icon--dark">⌘</span><span><strong>GitHub Guides</strong><small>Learn how to save code and collaborate as a team.</small></span><b>↗</b></a>
-            <a href="https://code.visualstudio.com/docs" target="_blank" rel="noopener"><span class="directory-resource-icon directory-resource-icon--violet">VS</span><span><strong>Visual Studio Code</strong><small>Editor setup, extensions and beginner documentation.</small></span><b>↗</b></a>
-          </div>
+          <div class="directory-resource-list">${teamResourceLinksHtml(resources)}</div>
         </section>
       </div>
       <aside class="directory-side">
         ${event && event.note && !broadcastDismissed ? `<section class="directory-panel directory-broadcast" id="directory-broadcast"><div class="directory-broadcast-heading"><span class="directory-live-dot"></span><p class="directory-eyebrow">PINNED BROADCAST</p><button class="directory-icon-button" type="button" data-action="directory-dismiss-broadcast" aria-label="Dismiss broadcast">×</button></div><h2>Event update</h2><p>${esc(event.note)}</p><div class="directory-broadcast-footer"><span>Organizer announcement</span><span>Stays until dismissed</span></div></section>` : ""}
-        <section class="directory-panel" id="directory-notice-board"><div class="directory-section-heading"><div><p class="directory-eyebrow">KEEP AN EYE ON</p><h2>Notice board</h2></div><span class="directory-pill">${notices.length} ${notices.length === 1 ? "notice" : "notices"}</span></div><p class="directory-notice-intro">Announcements and updates from event admins.</p><div class="directory-schedule">
+        <section class="directory-panel" id="directory-notice-board"><div class="directory-section-heading"><div><p class="directory-eyebrow">INTERNAL TEAM UPDATES</p><h2>Private notice board</h2></div><span class="directory-pill">${notices.length} ${notices.length === 1 ? "notice" : "notices"}</span></div><p class="directory-notice-intro">Notices for teams in this directory.</p><div class="directory-schedule">
           ${notices.length ? notices.map((notice) => {
             const createdAt = new Date(notice.createdAt);
             return `<article><time class="directory-time" datetime="${esc(notice.createdAt)}">${Number.isNaN(createdAt.getTime()) ? "" : esc(createdAt.toLocaleDateString([], { month: "short", day: "numeric" }))}</time><span class="directory-timeline-dot" aria-hidden="true"></span><div><strong>${esc(notice.title)}</strong><p class="directory-notice-message">${esc(notice.message)}</p><small>${Number.isNaN(createdAt.getTime()) ? "" : `Posted ${esc(createdAt.toLocaleString([], { dateStyle: "medium", timeStyle: "short" }))}`}</small></div></article>`;
@@ -748,6 +917,8 @@ const PAGES = {
     `<p class="u-text-soft u-mt-20">Mentor sessions will appear here when available.</p>` +
     '<p class="empty-state u-text-soft">No mentors are listed yet.</p>',
 
+  notices: () => publicNoticeBoardHtml(),
+
   teams: () => teamDirectoryHtml(),
 
   judging: () =>
@@ -759,7 +930,8 @@ const PAGES = {
     const programSessions = e ? allSessions().filter((session) => session.ev === e.id).length : 0;
     const managedEvents = STATE.events.length;
     const submissionState = e ? (e.open ? "Open" : "Closed") : "Not configured";
-    const noticeBoard = noticeBoardPanelHtml();
+    const noticeBoards = noticeManagementPanelHtml("public") + mealSchedulePanelHtml() + noticeManagementPanelHtml("private");
+    const teamResources = teamResourcesPanelHtml();
     const settings = e
       ? `<section class="panel panel--narrow admin-grid__item admin-grid__item--settings"><div class="admin-section-heading"><span class="admin-section-heading__icon">${svg("admin", 21)}</span><h3>Program settings</h3></div><p class="u-text-soft">Changes apply to: <strong class="u-text-strong">${esc(e.short)}</strong></p>
     <label class="field">Banner image URL<input class="input" id="bannerImageInput" placeholder="https://example.com/banner.jpg" value="${e.image.startsWith("data:") ? "" : esc(e.image)}"></label>
@@ -798,7 +970,7 @@ const PAGES = {
         </article>
       </div>
     </section>
-    <div class="admin-grid">${settings}${keynotePanelHtml()}${eventPanelHtml()}${noticeBoard}</div>`;
+    <div class="admin-grid">${settings}${keynotePanelHtml()}${eventPanelHtml()}${noticeBoards}${teamResources}</div>`;
   },
 
   auth: () => {
@@ -1096,9 +1268,14 @@ function go(id) {
   STATE.delArm = null;
   STATE.keyNote = "";
   STATE.notice = "";
-  STATE.noticeBoardNote = "";
-  STATE.editingNoticeId = null;
-  STATE.deleteNoticeId = null;
+  STATE.publicNoticeNote = "";
+  STATE.privateNoticeNote = "";
+  STATE.editingPublicNoticeId = null;
+  STATE.editingPrivateNoticeId = null;
+  STATE.deletePublicNoticeId = null;
+  STATE.deletePrivateNoticeId = null;
+  STATE.mealScheduleNote = "";
+  STATE.teamResourceNote = "";
   STATE.evNote = "";
   drawNav();
   drawTop();
@@ -1177,33 +1354,186 @@ function handleKeynote(form) {
   STATE.delArm = null;
   drawPage();
 }
-function handleNotice(form) {
+function handleNotice(form, board) {
+  const isPublic = board === "public",
+    listKey = isPublic ? "publicNotices" : "privateNotices",
+    noteKey = isPublic ? "publicNoticeNote" : "privateNoticeNote",
+    editingKey = isPublic ? "editingPublicNoticeId" : "editingPrivateNoticeId",
+    storageKey = isPublic ? CONFIG.storage.publicNotices : CONFIG.storage.privateNotices,
+    prefix = isPublic ? "public" : "private";
   const data = new FormData(form),
     title = String(data.get("title") || "").trim(),
     message = String(data.get("message") || "").trim(),
-    error = byId("noticeBoardError");
+    error = byId(`${prefix}NoticeError`);
   if (!title || !message) {
     error.textContent = "Please enter both a title and a message.";
     return;
   }
   const now = new Date().toISOString(),
-    existing = STATE.noticeBoard.find((notice) => notice.id === STATE.editingNoticeId),
+    notices = STATE[listKey],
+    existing = notices.find((notice) => notice.id === STATE[editingKey]),
     notice = existing
       ? { ...existing, title, message, updatedAt: now }
       : { id: `notice-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`, title, message, createdAt: now },
-    previous = STATE.noticeBoard;
-  STATE.noticeBoard = existing
-    ? previous.map((item) => (item.id === existing.id ? notice : item))
-    : [...previous, notice];
-  if (!saveNotices()) {
-    STATE.noticeBoard = previous;
-    STATE.noticeBoardNote = "Unable to save the notice. Browser storage is unavailable.";
+    next = existing
+      ? notices.map((item) => (item.id === existing.id ? notice : item))
+      : [...notices, notice];
+  if (!saveNotices(storageKey, next)) {
+    STATE[noteKey] = "Unable to save the notice. Browser storage is unavailable.";
     drawPage();
     return;
   }
-  STATE.noticeBoardNote = `Notice ${existing ? "updated" : "published"} and visible in the Team Directory.`;
-  STATE.editingNoticeId = null;
-  STATE.deleteNoticeId = null;
+  STATE[listKey] = next;
+  STATE[noteKey] = `Notice ${existing ? "updated" : "published"} on the ${prefix} Notice Board.`;
+  STATE[editingKey] = null;
+  STATE[isPublic ? "deletePublicNoticeId" : "deletePrivateNoticeId"] = null;
+  drawPage();
+}
+function handleMealSchedule(form) {
+  const data = new FormData(form),
+    next = Object.fromEntries(
+      MEALS.map(({ id }) => [
+        id,
+        {
+          time: String(data.get(`${id}Time`) || ""),
+          details: String(data.get(`${id}Details`) || "").trim(),
+        },
+      ]),
+    );
+  if (MEALS.some(({ id }) => next[id].time && !/^([01]\d|2[0-3]):[0-5]\d$/.test(next[id].time))) {
+    byId("mealScheduleError").textContent = "Please enter valid meal times.";
+    return;
+  }
+  const previous = STATE.mealSchedule;
+  STATE.mealSchedule = next;
+  if (!saveMealSchedule()) {
+    STATE.mealSchedule = previous;
+    STATE.mealScheduleNote = "Unable to save the meal schedule. Browser storage is unavailable.";
+  } else {
+    STATE.mealScheduleNote = "Coder meal schedule updated on the Public Notice Board.";
+  }
+  drawPage();
+}
+function handleTeamResource(form) {
+  const event = currentEvent(),
+    data = new FormData(form),
+    title = String(data.get("title") || "").trim(),
+    description = String(data.get("description") || "").trim(),
+    url = String(data.get("url") || "").trim(),
+    badge = String(data.get("badge") || "").trim(),
+    error = byId("teamResourceError");
+  if (!event) {
+    error.textContent = "Select an event before adding a resource.";
+    return;
+  }
+  if (!title || !description || !badge || !isSafeResourceUrl(url)) {
+    error.textContent = "Please provide a title, description, badge, and a valid http:// or https:// URL.";
+    return;
+  }
+  const resource = {
+    id: `resource-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
+    title,
+    description,
+    url,
+    badge,
+    tone: "violet",
+  };
+  persistTeamResources(event.id, [...resourcesForEvent(event.id), resource], "Resource added to this event's Team Directory.");
+}
+function reorderTeamResources(resourceId, direction) {
+  const event = currentEvent();
+  if (!event) return;
+  const resources = [...resourcesForEvent(event.id)],
+    from = resources.findIndex((resource) => resource.id === resourceId),
+    to = from + direction;
+  if (from < 0 || to < 0 || to >= resources.length) return;
+  [resources[from], resources[to]] = [resources[to], resources[from]];
+  persistTeamResources(event.id, resources, "Team resources reordered.");
+}
+function deleteTeamResource(resourceId) {
+  const event = currentEvent();
+  if (!event) return;
+  const resources = resourcesForEvent(event.id),
+    resource = resources.find((item) => item.id === resourceId);
+  if (!resource || !window.confirm(`Delete "${resource.title}" from ${event.short}'s Team Directory?`)) return;
+  persistTeamResources(event.id, resources.filter((item) => item.id !== resourceId), "Resource removed from this event's Team Directory.");
+}
+function onResourceDragStart(event) {
+  const list = byId("teamResourceAdminList");
+  if (!list || !list.contains(event.target)) return;
+  const row = event.target.closest(".resource-admin-row");
+  if (!row || !list.contains(row)) return;
+  STATE.draggingResourceId = row.dataset.resourceId;
+  event.dataTransfer.effectAllowed = "move";
+  event.dataTransfer.setData("text/plain", STATE.draggingResourceId);
+  row.classList.add("is-dragging");
+}
+function onResourceDragOver(event) {
+  const list = byId("teamResourceAdminList"),
+    target = event.target.closest(".resource-admin-row");
+  if (!list || !STATE.draggingResourceId || !target || !list.contains(target)) return;
+  event.preventDefault();
+  if (event.dataTransfer) event.dataTransfer.dropEffect = "move";
+}
+function onResourceDrop(event) {
+  const list = byId("teamResourceAdminList"),
+    target = event.target.closest(".resource-admin-row");
+  if (!list || !STATE.draggingResourceId || !target || !list.contains(target)) return;
+  event.preventDefault();
+  const eventId = STATE.eventId,
+    resources = [...resourcesForEvent(eventId)],
+    from = resources.findIndex((resource) => resource.id === STATE.draggingResourceId),
+    targetIndex = resources.findIndex((resource) => resource.id === target.dataset.resourceId);
+  if (from < 0 || targetIndex < 0 || from === targetIndex) {
+    STATE.draggingResourceId = null;
+    return;
+  }
+  const insertAt = targetIndex + (event.clientY > target.getBoundingClientRect().top + target.offsetHeight / 2 ? 1 : 0),
+    [moving] = resources.splice(from, 1),
+    adjustedInsertAt = from < insertAt ? insertAt - 1 : insertAt;
+  resources.splice(adjustedInsertAt, 0, moving);
+  STATE.draggingResourceId = null;
+  persistTeamResources(eventId, resources, "Team resources reordered.");
+}
+function onResourceDragEnd() {
+  STATE.draggingResourceId = null;
+  document.querySelectorAll(".resource-admin-row.is-dragging").forEach((row) => row.classList.remove("is-dragging"));
+}
+function beginNoticeEdit(board, id) {
+  const isPublic = board === "public";
+  STATE[isPublic ? "editingPublicNoticeId" : "editingPrivateNoticeId"] = id;
+  STATE[isPublic ? "deletePublicNoticeId" : "deletePrivateNoticeId"] = null;
+  STATE[isPublic ? "publicNoticeNote" : "privateNoticeNote"] = "";
+  drawPage();
+  byId(`${board}NoticeForm`).scrollIntoView({ block: "center" });
+}
+function cancelNoticeEdit(board) {
+  const isPublic = board === "public";
+  STATE[isPublic ? "editingPublicNoticeId" : "editingPrivateNoticeId"] = null;
+  STATE[isPublic ? "deletePublicNoticeId" : "deletePrivateNoticeId"] = null;
+  STATE[isPublic ? "publicNoticeNote" : "privateNoticeNote"] = "";
+  drawPage();
+}
+function deleteNotice(board, id) {
+  const isPublic = board === "public",
+    listKey = isPublic ? "publicNotices" : "privateNotices",
+    noteKey = isPublic ? "publicNoticeNote" : "privateNoticeNote",
+    editingKey = isPublic ? "editingPublicNoticeId" : "editingPrivateNoticeId",
+    deleteKey = isPublic ? "deletePublicNoticeId" : "deletePrivateNoticeId",
+    storageKey = isPublic ? CONFIG.storage.publicNotices : CONFIG.storage.privateNotices;
+  if (STATE[deleteKey] !== id) {
+    STATE[deleteKey] = id;
+    return drawPage();
+  }
+  const next = STATE[listKey].filter((notice) => notice.id !== id);
+  if (!saveNotices(storageKey, next)) {
+    STATE[noteKey] = "Unable to remove the notice. Browser storage is unavailable.";
+  } else {
+    STATE[listKey] = next;
+    STATE[noteKey] = `Notice removed from the ${board} Notice Board.`;
+    if (STATE[editingKey] === id) STATE[editingKey] = null;
+  }
+  STATE[deleteKey] = null;
   drawPage();
 }
 function showDirectoryToast(message) {
@@ -1407,36 +1737,15 @@ const ACTIONS = {
     STATE.keyNote = "Keynote deleted.";
     drawPage();
   },
-  "notice-edit": (id) => {
-    STATE.editingNoticeId = id;
-    STATE.deleteNoticeId = null;
-    STATE.noticeBoardNote = "";
-    drawPage();
-    byId("noticeForm").scrollIntoView({ block: "center" });
-  },
-  "notice-cancel": () => {
-    STATE.editingNoticeId = null;
-    STATE.deleteNoticeId = null;
-    STATE.noticeBoardNote = "";
-    drawPage();
-  },
-  "notice-delete": (id) => {
-    if (STATE.deleteNoticeId !== id) {
-      STATE.deleteNoticeId = id;
-      return drawPage();
-    }
-    const previous = STATE.noticeBoard;
-    STATE.noticeBoard = previous.filter((notice) => notice.id !== id);
-    if (!saveNotices()) {
-      STATE.noticeBoard = previous;
-      STATE.noticeBoardNote = "Unable to remove the notice. Browser storage is unavailable.";
-    } else {
-      STATE.noticeBoardNote = "Notice removed from the Team Directory.";
-      if (STATE.editingNoticeId === id) STATE.editingNoticeId = null;
-    }
-    STATE.deleteNoticeId = null;
-    drawPage();
-  },
+  "public-notice-edit": (id) => beginNoticeEdit("public", id),
+  "public-notice-cancel": () => cancelNoticeEdit("public"),
+  "public-notice-delete": (id) => deleteNotice("public", id),
+  "private-notice-edit": (id) => beginNoticeEdit("private", id),
+  "private-notice-cancel": () => cancelNoticeEdit("private"),
+  "private-notice-delete": (id) => deleteNotice("private", id),
+  "resource-move-up": (id) => reorderTeamResources(id, -1),
+  "resource-move-down": (id) => reorderTeamResources(id, 1),
+  "resource-delete": (id) => deleteTeamResource(id),
 };
 
 const CHANGES = {
@@ -1446,6 +1755,7 @@ const CHANGES = {
     STATE.editKey = null;
     STATE.keyNote = "";
     STATE.notice = "";
+    STATE.teamResourceNote = "";
     STATE.evNote = "";
     drawAll();
   },
@@ -1465,7 +1775,10 @@ const FORMS = {
   authForm: handleAuth,
   eventForm: handleEvent,
   keyForm: handleKeynote,
-  noticeForm: handleNotice,
+  publicNoticeForm: (form) => handleNotice(form, "public"),
+  privateNoticeForm: (form) => handleNotice(form, "private"),
+  mealScheduleForm: handleMealSchedule,
+  teamResourceForm: handleTeamResource,
   directoryTeamForm: handleDirectoryTeam,
   directoryMemberForm: handleDirectoryMember,
   directoryHelpForm: handleDirectoryHelp,
@@ -1524,6 +1837,10 @@ function init() {
   DOM.doc.addEventListener("input", onInput);
   DOM.doc.addEventListener("keydown", onKeydown);
   DOM.doc.addEventListener("submit", onSubmit);
+  DOM.doc.addEventListener("dragstart", onResourceDragStart);
+  DOM.doc.addEventListener("dragover", onResourceDragOver);
+  DOM.doc.addEventListener("drop", onResourceDrop);
+  DOM.doc.addEventListener("dragend", onResourceDragEnd);
   DOM.win.addEventListener("scroll", onScroll, { passive: true });
   DOM.win.addEventListener("resize", bannerMetrics);
   if (window.ResizeObserver) new ResizeObserver(bannerMetrics).observe(DOM.banner);
