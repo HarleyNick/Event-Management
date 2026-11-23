@@ -1,331 +1,213 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Sign in or register</title>
-
-<!-- Edited by NkosinathiM-ship: login page theme and relative asset paths. -->
-<!-- Styles: all the CSS lives in css/login.css -->
-<link rel="stylesheet" href="css/login.css">
-
-<!-- Apply the saved theme, defaulting to the site's dark theme before paint. -->
-<script>
-  try{
-    document.documentElement.dataset.theme = localStorage.getItem('theme') || 'dark';
-  }catch(e){}
-</script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Geekulcha team directory, team updates and project resources.">
+  <title>Geekulcha | Team Directory</title>
+  <!-- Fonts: Archivo (headings), Inter (text), JetBrains Mono (small labels). The page still works offline with system fonts. -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <!-- Light/dark mode: runs before the page paints so there is no flash of the wrong theme.
+       Uses the visitor's saved choice, otherwise their device setting. app.js handles the toggle button. -->
+  <script>
+    (function () {
+      var theme;
+      try { theme = localStorage.getItem("geekulchaTheme"); } catch (e) {}
+      if (theme !== "light" && theme !== "dark") {
+        theme = window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+      }
+      document.documentElement.setAttribute("data-theme", theme);
+    })();
+  </script>
+  <meta name="theme-color" content="#0d0e12">
+  <link rel="stylesheet" href="styles.css">
 </head>
-
-<!-- ==========================================================================
-     LOGIN / REGISTRATION PAGE
-
-     Page structure
-     1. Overlay panel ... slides left/right to switch between "Sign in" and "New member"
-     2. Auth view ....... role picker + sign-in / registration form
-     3. PIN view ........ authenticator code (6 digits)
-     4. Done view ....... success screen after the PIN is verified
-
-     Only one view is visible at a time. JavaScript switches between them
-     using the "hidden" attribute.
-     ========================================================================== -->
 <body>
+  <!-- The top navigation stays short so first-time users can find their way around. -->
+  <header class="topbar">
+    <a class="brand" href="#home" aria-label="Geekulcha directory home">
+      <span class="brand-mark">G</span><span>geekulcha<span class="dot">.</span></span>
+    </a>
+    <!-- Light/dark mode switch. app.js keeps the label and icon in step with the current theme. -->
+    <button class="theme-toggle" id="theme-toggle" type="button" aria-label="Switch to light mode" title="Switch to light mode">
+      <svg class="icon-sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+      <svg class="icon-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+    </button>
+    <button class="button button-primary small" type="button" data-open-help>Request help</button>
+    <span class="workspace-tag"><span class="online-dot"></span> Project workspace</span>
+  </header>
 
-<!-- LIGHT / DARK SWITCH (top right): click to slide between light and dark -->
-<button class="theme-toggle" id="theme-toggle" type="button" role="switch" aria-checked="false" aria-label="Dark mode">
-  <span class="theme-text" id="theme-text" aria-hidden="true">Light mode</span>
-  <span class="track" aria-hidden="true">
-    <svg class="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
-    <svg class="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
-    <span class="knob"></span>
-  </span>
-</button>
+  <div class="navigation-bar">
+    <nav aria-label="Main navigation">
+      <a class="active" href="#directory">Directory</a>
+      <a href="#notice-board">Notice board</a>
+      <a href="#resources">Resources</a>
+    </nav>
+  </div>
 
-<main class="panel" id="panel" data-mode="login">
-
-  <div class="body">
-
-    <!-- ====================================================================
-         2. AUTH VIEW
-         Shown first. Used for both signing in and registering.
-         ==================================================================== -->
-    <section id="view-auth">
-      <!-- Edited by NkosinathiM-ship: Limpopo Dev Ecosystem login branding. -->
-      <img class="brand-logo" src="assets/logo-white.png" alt="Limpopo Dev Ecosystem">
-      <!-- Heading and subtitle change depending on the active tab -->
-      <h1 id="title">Welcome back</h1>
-      <p class="sub" id="subtitle">Choose your role, then sign in.</p>
-
-      <!-- PROGRESS (registration only): which of the 3 steps you are on -->
-      <ol class="steps reg" id="steps" hidden aria-label="Registration progress">
-        <li data-n="1"><b>1</b><span>About you</span></li>
-        <li data-n="2"><b>2</b><span>Your work</span></li>
-        <li data-n="3"><b>3</b><span>Finish</span></li>
-      </ol>
-
-      <!-- Social sign-in buttons (not connected yet: see js/login.js) -->
-      <div class="social" data-step="1" role="group" aria-label="Sign in with a social account">
-        <button class="soc" type="button" data-provider="Facebook" aria-label="Continue with Facebook">f</button>
-        <button class="soc" type="button" data-provider="Google" aria-label="Continue with Google">G</button>
+  <main id="home" class="page-wrap">
+    <!-- A short welcome gives context without overwhelming new visitors. -->
+    <section class="welcome">
+      <div>
+        <p class="eyebrow">GEEKULCHA · PROJECT WORKSPACE</p>
+        <h1>Team directory<span class="dot">.</span></h1>
+        <p class="subheading">Meet the people, follow the updates and find the tools that help us build together.</p>
       </div>
-      <p class="or" id="or-text" data-step="1">or use your account</p>
-
-      <!-- novalidate: JavaScript does the validation so we control the messages -->
-      <form id="form" novalidate>
-
-        <!-- Form-level error (e.g. "Email or password is incorrect") -->
-        <div class="form-err" id="form-err" role="alert"></div>
-
-        <!-- ROLE PICKER (shown for both sign in and register) -->
-        <fieldset data-step="1">
-          <legend>I am a</legend>
-          <div class="roles">
-            <label class="role"><input type="radio" name="role" value="Attendee"><span>Attendee</span></label>
-            <label class="role"><input type="radio" name="role" value="Team"><span>Team</span></label>
-            <label class="role"><input type="radio" name="role" value="Mentor"><span>Mentor</span></label>
-            <label class="role"><input type="radio" name="role" value="Judge"><span>Judge</span></label>
-            <!-- Edited by NkosinathiM-ship: Super Admin role option. -->
-            <label class="role"><input type="radio" name="role" value="Super Admin"><span>Super Admin</span></label>
-          </div>
-          <p class="err" id="e-role"></p>
-        </fieldset>
-
-        <!-- NOTE: elements with class "reg" are REGISTRATION-ONLY.
-             They start hidden and are shown when "New member" is selected. -->
-
-        <!-- PROFILE PHOTO (registration only) -->
-        <div class="field reg" data-step="1" hidden>
-          <p class="lbl" id="photo-label">Profile photo</p>
-          <div class="photo-row">
-            <div class="avatar" id="avatar" aria-hidden="true">
-              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg>
-            </div>
-            <div>
-              <!-- Real file input is visually hidden; the label next to it acts as the button -->
-              <input class="sr" type="file" id="photo" accept="image/png,image/jpeg,image/webp" aria-labelledby="photo-label">
-              <label class="btn-outline" for="photo" id="photo-btn">Choose photo</label>
-              <button class="link" type="button" id="photo-remove" hidden>Remove</button>
-              <p class="hint">JPG, PNG or WebP, up to 2 MB.</p>
-            </div>
-          </div>
-          <p class="err" id="e-photo"></p>
-        </div>
-
-        <!-- Full name (registration only) -->
-        <div class="field reg" data-step="1" hidden>
-          <label class="l" for="fullname">Full Name</label>
-          <input class="t" id="fullname" autocomplete="name">
-          <p class="err" id="e-fullname"></p>
-        </div>
-
-        <!-- Email (sign in and register) -->
-        <div class="field" data-step="1">
-          <label class="l" for="email">Email address</label>
-          <input class="t" id="email" type="email" autocomplete="email" placeholder="name@company.com">
-          <p class="err" id="e-email"></p>
-        </div>
-
-        <!-- TEAM NAME (registration only, and only when the role is "Team").
-             Not a "reg" element: JavaScript shows or hides it when a role is picked. -->
-        <div class="field" id="team-field" data-step="2" hidden>
-          <label class="l" for="team">Team name (Optional or New Team)</label>
-          <input class="t" id="team" autocomplete="off" placeholder="e.g. Phoenix">
-          <p class="err" id="e-team"></p>
-        </div>
-
-        <!-- Job title + Organisation, side by side (registration only) -->
-        <div class="row reg" data-step="2" hidden>
-          <div class="field">
-            <label class="l" for="job">Job title</label>
-            <input class="t" id="job" autocomplete="organization-title" placeholder="Product designer">
-            <p class="err" id="e-job"></p>
-          </div>
-          <div class="field">
-            <label class="l" for="org">Organisation</label>
-            <input class="t" id="org" autocomplete="organization" placeholder="Your company or group">
-            <p class="err" id="e-org"></p>
-          </div>
-        </div>
-
-        <!-- Description (registration only), limited to 300 characters -->
-        <div class="field reg" data-step="2" hidden>
-          <label class="l" for="about">Bio & Background</label>
-          <textarea id="about" maxlength="300" placeholder="A short description of what you do and what you're working on"></textarea>
-          <p class="err" id="e-about"></p>
-        </div>
-
-        <!-- SKILLS & TECH STACK (registration only).
-             Type a skill and press Enter / Add, or tap a suggestion. -->
-        <div class="field reg" data-step="2" hidden>
-          <label class="l" for="skill-input">Skills &amp; tech stack</label>
-          <div class="skill-add">
-            <input class="t" id="skill-input" autocomplete="off" maxlength="30" placeholder="Type a skill, e.g. Python">
-            <button class="btn-outline" type="button" id="skill-add">Add</button>
-          </div>
-          <div class="chips picked" id="skill-list" aria-live="polite"></div>
-          <p class="hint">Tap a suggestion or type your own. Up to 15.</p>
-          <div class="chips suggest" id="skill-suggest"></div>
-          <input type="hidden" id="skills">
-          <p class="err" id="e-skills"></p>
-        </div>
-
-        <!-- SOCIAL LINKS (registration only, all optional) -->
-        <fieldset class="reg" data-step="3" hidden>
-          <legend>Social links (optional)</legend>
-          <div class="row">
-            <div class="field">
-              <label class="l" for="linkedin">LinkedIn</label>
-              <input class="t" id="linkedin" inputmode="url" autocomplete="off" placeholder="linkedin.com/in/yourname">
-              <p class="err" id="e-linkedin"></p>
-            </div>
-            <div class="field">
-              <label class="l" for="facebook">Facebook</label>
-              <input class="t" id="facebook" inputmode="url" autocomplete="off" placeholder="facebook.com/yourname">
-              <p class="err" id="e-facebook"></p>
-            </div>
-          </div>
-          <div class="row">
-            <div class="field">
-              <label class="l" for="github">GitHub</label>
-              <input class="t" id="github" inputmode="url" autocomplete="off" placeholder="github.com/yourname">
-              <p class="err" id="e-github"></p>
-            </div>
-            <div class="field">
-              <label class="l" for="website">Website / portfolio</label>
-              <input class="t" id="website" inputmode="url" autocomplete="off" placeholder="yourname.com">
-              <p class="err" id="e-website"></p>
-            </div>
-          </div>
-        </fieldset>
-
-        <!-- PASSWORD ROW: Password and Repeat password sit next to each other.
-             On the Sign in tab "Repeat password" is hidden, so Password fills the row. -->
-        <div class="row-pw" data-step="3">
-
-          <!-- Password (sign in and register).
-               JavaScript switches autocomplete between current-password and new-password. -->
-          <div class="field">
-            <label class="l" for="pw">Password</label>
-            <input class="t" id="pw" type="password" autocomplete="current-password">
-            <p class="err" id="e-pw"></p>
-          </div>
-
-          <!-- Repeat password (registration only) -->
-          <div class="field reg" hidden>
-            <label class="l" for="pw2">Repeat password</label>
-            <input class="t" id="pw2" type="password" autocomplete="new-password">
-            <p class="err" id="e-pw2"></p>
-          </div>
-        </div>
-
-        <!-- Shows or hides the password in both password fields -->
-        <label class="check" data-step="3"><input type="checkbox" id="show"> Show password</label>
-
-        <!-- Button text changes: "Sign in" or "Create account" -->
-        <!-- Sign in: just the Sign in button.
-             Create account: Back / Next on steps 1-2, Back / Create account on step 3. -->
-        <div class="step-nav">
-          <button class="btn-outline" type="button" id="prev" hidden>Back</button>
-          <button class="btn" type="button" id="next" hidden>Next</button>
-          <button class="btn" id="submit" type="submit">Sign in</button>
-        </div>
-
-        <!-- Shown on small screens only (the sliding panel is hidden there) -->
-        <p class="switch-mobile"><span id="switch-q">New here?</span> <button class="link" type="button" id="switch-btn">Create account</button></p>
-      </form>
+      <div class="welcome-mark" aria-hidden="true"><span>G</span><i>04</i></div>
     </section>
 
-
-    <!-- ====================================================================
-         3. PIN VIEW
-         Shown after a successful sign in or registration.
-         The user types the 6-digit code from their authenticator app.
-         ==================================================================== -->
-    <section id="view-pin" hidden>
-      <h1>Enter your authenticator code</h1>
-
-      <!-- Confirmation message, filled in by JavaScript -->
-      <p class="notice" id="pin-notice"></p>
-      <p class="sub">Open your authenticator app and type the 6-digit code it shows.</p>
-
-      <!-- DEMO ONLY: delete this block once you have a real backend -->
-      <div class="demo">Demo mode: any real check must happen on your server. For now, use <strong>123456</strong>.</div>
-
-      <!-- Six single-digit boxes. The first one allows autofill of one-time codes. -->
-      <div class="pin" id="pin" role="group" aria-label="6-digit code">
-        <input inputmode="numeric" maxlength="1" autocomplete="one-time-code" aria-label="Digit 1">
-        <input inputmode="numeric" maxlength="1" aria-label="Digit 2">
-        <input inputmode="numeric" maxlength="1" aria-label="Digit 3">
-        <input inputmode="numeric" maxlength="1" aria-label="Digit 4">
-        <input inputmode="numeric" maxlength="1" aria-label="Digit 5">
-        <input inputmode="numeric" maxlength="1" aria-label="Digit 6">
-      </div>
-
-      <!-- PIN error message (e.g. "That code isn't right. 2 attempts left.") -->
-      <p class="err" id="e-pin" role="alert" style="margin-bottom:14px"></p>
-
-      <button class="btn" id="verify" type="button">Verify code</button>
-      <div class="center"><button class="link" id="back" type="button">Back</button></div>
+    <!-- Quick counts give visitors an immediate overview of the workspace. -->
+    <section class="stats" aria-label="Workspace overview">
+      <article class="stat-card"><span class="stat-icon">◎</span><div><strong id="team-total">4</strong><small>Project teams</small></div></article>
+      <article class="stat-card"><span class="stat-icon">♙</span><div><strong id="member-total">7</strong><small>Team members</small></div></article>
+      <article class="stat-card"><span class="stat-icon">▤</span><div><strong>4</strong><small>Team work areas</small></div></article>
     </section>
 
+    <div class="main-grid">
+      <div class="primary-column">
+        <!-- Team 4 is highlighted because it owns this directory page. -->
+        <section class="panel directory-panel" id="directory">
+          <div class="section-heading">
+            <div><p class="eyebrow">YOUR MAIN WORK AREA</p><h2>Team 4 <span>— Directory</span></h2></div>
+            <span class="pill green-pill">Your team</span>
+          </div>
+          <p class="section-intro">We make it easy for everyone to know who is involved, what each team does and who to contact.</p>
+          <div class="featured-members">
+            <article class="person-card">
+              <div class="avatar avatar-green">SM</div>
+              <div class="person-info"><h3>Sinethemba Malinga</h3><p>Directory coordinator</p><span class="person-detail">Team directory · Team 4</span></div>
+            </article>
+            <article class="person-card">
+              <div class="avatar avatar-sand">EC</div>
+              <div class="person-info"><h3>Ethan Carelse</h3><p>Directory coordinator</p><span class="person-detail">Team directory · Team 4</span></div>
+            </article>
+          </div>
+          <div class="responsibility-box"><span class="responsibility-icon">✦</span><p><strong>Our focus</strong><br>Keep the directory clear and up to date, show each team's responsibilities, and make the workspace welcoming for people who are new to technology.</p></div>
+          <div class="section-subheading"><h3>All project teams</h3><span id="all-member-label">7 people · 4 teams</span></div>
+          <div class="other-teams" id="other-teams">
+            <article class="team-row"><span class="team-badge badge-one">01</span><div><h4>Registration &amp; Login</h4><p>Lisa Erasmus <span>·</span> Registration and login page</p></div><span class="team-status">Design</span></article>
+            <article class="team-row"><span class="team-badge badge-two">02</span><div><h4>Live Programme</h4><p>Nkosinathi Maseko · Lesedi Makhatha</p><small>Programme framework and live event page</small></div><span class="team-status">Building</span></article>
+            <article class="team-row"><span class="team-badge badge-three">03</span><div><h4>Security &amp; Research</h4><p>Dewald Jordan · Ntsako Kekae</p><small>IDS, database encryption and OWASP Top 10 research</small></div><span class="team-status">Research</span></article>
+          </div>
+          <div class="action-row">
+            <button class="button button-primary" id="open-team-form">＋ Register a team</button>
+            <button class="button button-secondary" id="open-member-form">＋ Add a member</button>
+          </div>
+        </section>
 
-    <!-- ====================================================================
-         4. DONE VIEW
-         Success screen. Name, email, title, organisation and role are
-         filled in by JavaScript.
-         ==================================================================== -->
-    <section id="view-done" class="center" hidden>
-
-      <!-- Green tick icon -->
-      <div class="tick" aria-hidden="true">
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
+        <!-- Resource links are grouped by purpose and use plain descriptions. -->
+        <section class="panel resources-panel" id="resources">
+          <div class="section-heading"><div><p class="eyebrow">USEFUL LINKS</p><h2>Team resources</h2></div><span class="quiet-label">Helpful tools &amp; guides</span></div>
+          <div class="resource-list">
+            <a class="resource-item" href="https://developer.mozilla.org/en-US/docs/Learn" target="_blank" rel="noopener"><span class="resource-icon blue">⌘</span><span><strong>MDN Web Docs</strong><small>Beginner-friendly lessons for HTML, CSS and JavaScript.</small></span><b>↗</b></a>
+            <a class="resource-item" href="https://www.w3schools.com/" target="_blank" rel="noopener"><span class="resource-icon green">W3</span><span><strong>W3Schools</strong><small>Simple examples to practise web development basics.</small></span><b>↗</b></a>
+            <a class="resource-item" href="https://owasp.org/www-project-top-ten/" target="_blank" rel="noopener"><span class="resource-icon orange">盾</span><span><strong>OWASP Top 10</strong><small>Common web application security risks for Team 3.</small></span><b>↗</b></a>
+            <a class="resource-item" href="https://docs.github.com/en/get-started" target="_blank" rel="noopener"><span class="resource-icon dark">⌘</span><span><strong>GitHub Guides</strong><small>Learn how to save code and collaborate as a team.</small></span><b>↗</b></a>
+            <a class="resource-item" href="https://code.visualstudio.com/docs" target="_blank" rel="noopener"><span class="resource-icon violet">VS</span><span><strong>Visual Studio Code</strong><small>Editor setup, extensions and beginner documentation.</small></span><b>↗</b></a>
+          </div>
+        </section>
       </div>
 
-      <h1 id="done-title">You're in</h1>
-      <p class="sub" id="done-sub"></p>
+      <aside class="side-column">
+        <!-- The broadcast remains visible until a user dismisses it. -->
+        <section class="panel broadcast-panel" id="broadcast-panel">
+          <div class="broadcast-heading"><span class="live-indicator"></span><p class="eyebrow">PINNED BROADCAST</p><button class="icon-button" id="dismiss-broadcast" aria-label="Dismiss broadcast" title="Dismiss broadcast">×</button></div>
+          <h2>Welcome to the Geekulcha workspace</h2>
+          <p>Check the notice board for the event schedule, keep your team details up to date and use the shared resources when you need a hand.</p>
+          <div class="broadcast-footer"><span>Workspace announcement</span><span>Stays until dismissed</span></div>
+        </section>
 
-      <!-- PROFILE CARD: name, job title and organisation.
-           JavaScript fills it in and hides it if there is nothing to show. -->
-      <div class="profile" id="profile" hidden>
-        <div class="phead">
-          <div class="avatar big" id="done-avatar" hidden></div>
-          <p class="pname" id="done-name"></p>
-        </div>
-        <p class="plabel">Professional title / Organisation</p>
-        <p class="ptitle" id="done-job"></p>
-        <p class="porg" id="done-org"></p>
-        <ul class="plinks" id="done-links"></ul>
-        <div class="chips picked" id="done-skills"></div>
-      </div>
+        <!-- Times supplied by the organiser are shown exactly; unconfirmed slots are labelled. -->
+        <section class="panel notice-panel" id="notice-board">
+          <div class="section-heading"><div><p class="eyebrow">KEEP AN EYE ON</p><h2>Notice board</h2></div><span class="pill">Schedule</span></div>
+          <p class="notice-intro">Key event moments and working times in one place.</p>
+          <div class="schedule">
+            <article class="schedule-item">
+              <div class="time">08:00 <span>– 09:30</span></div>
+              <div class="timeline-dot"></div>
+              <div class="schedule-copy"><strong>Hacker registration &amp; swag badge pickup</strong><small>Participant check-in and badge collection.</small></div>
+            </article>
+            <article class="schedule-item">
+              <div class="time">Time TBC</div>
+              <div class="timeline-dot"></div>
+              <div class="schedule-copy"><strong>Kickoff breakfast &amp; espresso fuel bar</strong><small>Breakfast opens for participants; settle in and get ready to start.</small></div>
+            </article>
+            <article class="schedule-item">
+              <div class="time">Time TBC</div>
+              <div class="timeline-dot"></div>
+              <div class="schedule-copy"><strong>Sponsor power lunch</strong><small>Lunch break and time to connect with sponsors.</small></div>
+            </article>
+          </div>
+          <p class="schedule-footnote">“Time TBC” means the exact time still needs to be confirmed by the organiser.</p>
+        </section>
 
-      <span class="badge" id="done-role"></span>
-
-      <div style="margin-top:24px"><button class="btn" id="signout" type="button">Sign out</button></div>
-    </section>
-
-  </div><!-- /.body -->
-
-  <!-- ======================================================================
-       OVERLAY PANEL (the coloured side)
-       Sits on the right while signing in and slides to the left when
-       registering. JavaScript shows one of the two messages (hidden attribute).
-       ====================================================================== -->
-  <aside class="overlay" id="overlay">
-    <div id="ov-login">
-      <h2>New Member!</h2>
-      <p>Enter your personal details and start your journey with us</p>
-      <button class="ghost" type="button" id="go-register">Sign up</button>
+        <!-- Contestants who are stuck can ask for a mentor from here, the top bar, or the Request help button. -->
+        <section class="panel quick-help">
+          <div class="help-icon">?</div>
+          <div class="help-copy"><strong>Need a hand?</strong><p>Tell us what you need and we will connect you with a mentor.</p></div>
+          <button class="button button-primary small" type="button" data-open-help>Request</button>
+        </section>
+      </aside>
     </div>
-    <div id="ov-register" hidden>
-      <h2>Welcome Back!</h2>
-      <p>To keep connected with us please login with your personal info</p>
-      <button class="ghost" type="button" id="go-login">Sign in</button>
-    </div>
-  </aside>
-</main>
 
-<!-- JavaScript: all the page logic lives in js/login.js.
-     It is loaded at the end of the body so the HTML above exists first. -->
-<script src="js/login.js"></script>
+    <footer class="footer"><span>© Geekulcha · Team Directory</span><span>Made for people, not just tech people.</span></footer>
+  </main>
+
+  <!-- Simple dialogs collect team/member details. This demo stores them in this browser only. -->
+  <dialog id="team-dialog" class="form-dialog">
+    <form id="team-form" method="dialog">
+      <div class="dialog-heading"><div><p class="eyebrow">WORKSPACE DIRECTORY</p><h2>Register a team</h2></div><button type="button" class="icon-button close-dialog" aria-label="Close">×</button></div>
+      <label>Team name<input name="teamName" required placeholder="e.g. Design team"></label>
+      <label>Team number<input name="teamNumber" required type="number" min="1" max="99" placeholder="e.g. 5"></label>
+      <label>Team responsibility<textarea name="teamRole" required rows="3" placeholder="What will this team work on?"></textarea></label>
+      <div class="dialog-actions"><button type="button" class="button button-secondary close-dialog">Cancel</button><button class="button button-primary" type="submit">Save team</button></div>
+      <p class="form-note">Demo only: the new team is saved in this browser, not on a shared server.</p>
+    </form>
+  </dialog>
+
+  <dialog id="member-dialog" class="form-dialog">
+    <form id="member-form" method="dialog">
+      <div class="dialog-heading"><div><p class="eyebrow">WORKSPACE DIRECTORY</p><h2>Add a member</h2></div><button type="button" class="icon-button close-dialog" aria-label="Close">×</button></div>
+      <label>Full name<input name="memberName" required placeholder="Enter their full name"></label>
+      <label>Team<select name="memberTeam" required><option value="">Choose a team</option><option>Team 1</option><option>Team 2</option><option>Team 3</option><option>Team 4</option></select></label>
+      <label>Role<input name="memberRole" required placeholder="e.g. Front-end developer"></label>
+      <div class="dialog-actions"><button type="button" class="button button-secondary close-dialog">Cancel</button><button class="button button-primary" type="submit">Add member</button></div>
+      <p class="form-note">Demo only: the new member is saved in this browser, not on a shared server.</p>
+    </form>
+  </dialog>
+
+  <!-- POP-UP 1: the contestant says what type of help they need. -->
+  <dialog id="help-dialog" class="form-dialog" aria-labelledby="help-title">
+    <form id="help-form" method="dialog" novalidate>
+      <div class="dialog-heading"><div><p class="eyebrow">NEED HELP?</p><h2 id="help-title">Request help</h2></div><button type="button" class="icon-button close-dialog" aria-label="Close">×</button></div>
+      <label>Your name<input name="who" autocomplete="name" placeholder="e.g. Thabo Mokoena"></label>
+      <fieldset>
+        <legend>What type of help do you need?</legend>
+        <div class="help-options" id="help-options"></div>
+      </fieldset>
+      <label>What is happening? (optional)<textarea name="details" rows="3" placeholder="A short description helps the mentor prepare."></textarea></label>
+      <p class="form-error" id="help-error" role="alert"></p>
+      <div class="dialog-actions"><button type="button" class="button button-secondary close-dialog">Cancel</button><button class="button button-primary" type="submit">Find a mentor</button></div>
+    </form>
+  </dialog>
+
+  <!-- POP-UP 2: shows the mentor matched to that type of help. -->
+  <dialog id="mentor-dialog" class="form-dialog" aria-labelledby="mentor-title">
+    <div class="dialog-body">
+      <div class="dialog-heading"><div><p class="eyebrow">MENTOR MATCHED</p><h2 id="mentor-title">A mentor can help you</h2></div><button type="button" class="icon-button close-dialog" aria-label="Close">×</button></div>
+      <article class="person-card">
+        <div class="avatar avatar-green" id="mentor-avatar"></div>
+        <div class="person-info"><h3 id="mentor-name"></h3><p id="mentor-role"></p></div>
+      </article>
+      <p class="mentor-summary" id="mentor-summary"></p>
+      <p class="mentor-hint">Press the button to send your request to the mentor by email.</p>
+      <div class="dialog-actions"><button type="button" class="button button-secondary close-dialog">Close</button><a class="button button-primary" id="mentor-mail" href="#">Email mentor</a></div>
+    </div>
+  </dialog>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script src="app.js"></script>
 </body>
 </html>
