@@ -1,3 +1,4 @@
+/* Author: NkosinathiM-ship */
 /* ==========================================================================
    LOGIN / REGISTRATION PAGE LOGIC
 
@@ -12,12 +13,11 @@
    8. Switching between views (form, success)
    9. Form submit
    10. Buttons: Sign out
-   13. Profile builder (photo, skills, social links)
-   14. Registration steps (3 parts)
-   15. Theme switch (light / dark)
-   16. Start
+   11. Profile builder (photo, skills, social links)
+   12. Registration steps (3 parts)
+   13. Theme switch (light / dark)
+   14. Start
    ========================================================================== */
-
 
 /* ==========================================================================
    1. HELPERS
@@ -465,7 +465,7 @@ $('#signout').onclick = () => {
 
 
 /* ==========================================================================
-   13. PROFILE BUILDER
+   11. PROFILE BUILDER
    Photo upload, skills / tech stack tags and social links.
    (Only shown on the New member tab.)
    ========================================================================== */
@@ -638,7 +638,7 @@ function resetProfile(){
 $('#form').addEventListener('reset', () => setTimeout(resetProfile, 0));
 
 /* ==========================================================================
-   14. REGISTRATION STEPS (3 PARTS)
+   12. REGISTRATION STEPS (3 PARTS)
    Create account is split into three short steps so the form isn't one long
    scroll. Elements in index.html carry data-step="1|2|3"; CSS shows only the
    current step. Sign in ignores steps.
@@ -731,7 +731,7 @@ $('#prev').onclick = () => {
 };
 
 /* ==========================================================================
-   15. THEME SWITCH (LIGHT / DARK)
+   13. THEME SWITCH (LIGHT / DARK)
    The theme is stored on <html data-theme="light|dark"> and remembered in
    localStorage. A small script in <head> sets it before the page paints.
    ========================================================================== */
@@ -758,7 +758,7 @@ themeBtn.onclick = () => {
 };
 
 /* ==========================================================================
-   16. START
+   14. START
    Set the page to Sign in mode when it first loads.
    ========================================================================== */
 setMode('login');

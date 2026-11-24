@@ -1,4 +1,5 @@
 "use strict";
+/* Author: NkosinathiM-ship */
 /* This file controls what the page does.
    1. Settings
    2. Style state names
