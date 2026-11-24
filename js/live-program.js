@@ -29,6 +29,7 @@ const CONFIG = {
     privateNotices: "portal-notice-board-v1",
     mealSchedule: "portal-coder-meal-schedule-v1",
     teamResources: "portal-team-resources-v1",
+    judgingScores: "portal-judging-scores-v1",
     accounts: "portal-accounts-v1",
     session: "portal-session-v1",
   },
@@ -139,7 +140,7 @@ const MENU = [
   { id: "auth", label: "Log in & registration", hint: "Sign in or create an account" },
 ];
 // TODO: Connect these navigation entries when their team pages are ready.
-const PLACEHOLDER_NAV_IDS = new Set(["mentors", "judging"]);
+const PLACEHOLDER_NAV_IDS = new Set(["mentors"]);
 const SIGNUP_ROLES = ["attendee", "mentor", "team", "judge", "superadmin"]; // roles a person can pick when registering
 // This shows which menus each account role can open.
 const ALLOWED = {
@@ -205,6 +206,10 @@ const STATE = {
   deletePrivateNoticeId: null,
   mealScheduleNote: "",
   teamResourceNote: "",
+  judgingFilter: "all",
+  judgingCategory: "All",
+  judgingSearch: "",
+  judgingTeamId: "",
   draggingResourceId: null,
   evNote: "",
   authMode: "login",
@@ -499,7 +504,9 @@ function signIn(user) {
   STATE.role = user.role;
   STATE.loggedIn = true;
   clearGuestAccess();
-  if (!window.location.pathname.toLowerCase().endsWith("team-directory.html")) {
+  if (window.location.pathname.toLowerCase().endsWith("judging-portal.html")) {
+    STATE.page = "judging";
+  } else if (!window.location.pathname.toLowerCase().endsWith("team-directory.html")) {
     const hashPage = window.location.hash.replace(/^#/, "");
     STATE.page = hashPage && MENU.some((item) => item.id === hashPage) ? hashPage : "live";
   } else {
@@ -531,6 +538,19 @@ function clearGuestAccess() {
   url.searchParams.delete("access");
   window.history.replaceState(null, "", url.pathname + url.search + url.hash);
 }
+function guardJudgingAccess() {
+  if (!window.location.pathname.toLowerCase().endsWith("judging-portal.html")) return true;
+  if (!STATE.loggedIn) {
+    window.location.replace("index.html");
+    return false;
+  }
+  if (STATE.role !== "judge") {
+    window.location.replace("live-program.html");
+    return false;
+  }
+  return true;
+}
+
 async function initAccounts() {
   let saved = [];
   try {
@@ -826,6 +846,105 @@ const directoryStorage = {
 const directoryTeams = () => directoryStorage.get("geekulchaExtraTeams").filter((x) => x && typeof x.name === "string");
 const directoryMembers = () => directoryStorage.get("geekulchaExtraMembers").filter((x) => x && typeof x.name === "string");
 
+const judgingStorage = {
+  get() {
+    try {
+      const value = JSON.parse(localStorage.getItem(CONFIG.storage.judgingScores) || "[]");
+      return Array.isArray(value) ? value : [];
+    } catch {
+      return [];
+    }
+  },
+  set(value) {
+    try {
+      localStorage.setItem(CONFIG.storage.judgingScores, JSON.stringify(value));
+      return true;
+    } catch {
+      return false;
+    }
+  },
+};
+
+const judgingTeamId = (team, index) => team.id || `directory-team-${team.number || index + 1}-${String(team.name).toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
+const judgingTeams = () => {
+  const registered = directoryTeams().map((team, index) => ({
+    ...team,
+    id: judgingTeamId(team, index),
+    category: typeof team.category === "string" && team.category.trim() ? team.category.trim() : "General",
+  }));
+  const accountTeams = STATE.accounts
+    .filter((account) => account.role === "team")
+    .map((account, index) => ({
+      id: `account-team-${String(account.email).toLowerCase().replace(/[^a-z0-9]+/g, "-")}`,
+      number: String(index + 1).padStart(2, "0"),
+      name: account.team || account.name || account.email,
+      role: "Registered team",
+      category: "General",
+    }));
+  const seen = new Set(registered.map((team) => team.name.toLowerCase()));
+  accountTeams.forEach((team) => {
+    if (!seen.has(team.name.toLowerCase())) registered.push(team);
+  });
+  return registered;
+};
+
+function judgeId() {
+  return STATE.user && STATE.user.email ? String(STATE.user.email).trim().toLowerCase() : "";
+}
+
+function ownJudgingScores() {
+  const id = judgeId();
+  return judgingStorage.get().filter((score) =>
+    score &&
+    score.eventId === STATE.eventId &&
+    score.judgeId === id
+  );
+}
+
+function ownScoreForTeam(teamId) {
+  return ownJudgingScores().find((score) => score.teamId === teamId) || null;
+}
+
+function upsertOwnScore(teamId, criteria, feedback) {
+  const id = judgeId();
+  if (!id) return false;
+  const all = judgingStorage.get();
+  const now = new Date().toISOString();
+  const existingIndex = all.findIndex((score) =>
+    score &&
+    score.eventId === STATE.eventId &&
+    score.teamId === teamId &&
+    score.judgeId === id
+  );
+  const existing = existingIndex >= 0 ? all[existingIndex] : null;
+  const entry = {
+    eventId: STATE.eventId,
+    teamId,
+    judgeId: id,
+    criteria,
+    total: Object.values(criteria).reduce((sum, value) => sum + Number(value || 0), 0),
+    feedback: String(feedback || "").trim(),
+    submittedAt: existing ? existing.submittedAt : now,
+    updatedAt: now,
+  };
+  if (existingIndex >= 0) all[existingIndex] = entry;
+  else all.push(entry);
+  return judgingStorage.set(all);
+}
+
+// Used only by the Super Admin dashboard. This function reads no judge identity in rendering.
+function judgingAggregateForAdmin(teamId) {
+  const scores = judgingStorage.get().filter((score) =>
+    score && score.eventId === STATE.eventId && score.teamId === teamId
+  );
+  const total = scores.reduce((sum, score) => sum + Number(score.total || 0), 0);
+  return {
+    judgeCount: scores.length,
+    total,
+    average: scores.length ? total / scores.length : 0,
+  };
+}
+
 function teamDirectoryHtml() {
   const teams = directoryTeams(),
     members = directoryMembers(),
@@ -887,7 +1006,7 @@ function directoryDialogsHtml() {
   const teams = directoryTeams();
   return `<dialog class="directory-dialog" id="directoryTeamDialog"><form id="directoryTeamForm" method="dialog">
       <div class="directory-dialog-heading"><div><p class="directory-eyebrow">WORKSPACE DIRECTORY</p><h2>Register a team</h2></div><button type="button" class="directory-icon-button" data-action="directory-close-dialog" aria-label="Close">×</button></div>
-      <label>Team name<input name="teamName" required placeholder="e.g. Design team"></label><label>Team number<input name="teamNumber" required type="number" min="1" max="99" placeholder="e.g. 5"></label><label>Team responsibility<textarea name="teamRole" required rows="3" placeholder="What will this team work on?"></textarea></label><p class="directory-form-error" id="directoryTeamError" role="alert"></p><div class="directory-dialog-actions"><button type="button" class="directory-button directory-button--secondary" data-action="directory-close-dialog">Cancel</button><button class="directory-button directory-button--primary" type="submit">Save team</button></div><p class="directory-form-note">Saved in this browser only.</p>
+      <label>Team name<input name="teamName" required placeholder="e.g. Design team"></label><label>Team number<input name="teamNumber" required type="number" min="1" max="99" placeholder="e.g. 5"></label><label>Category / track<input name="teamCategory" required placeholder="e.g. AI, Robotics, Web"></label><label>Team responsibility<textarea name="teamRole" required rows="3" placeholder="What will this team work on?"></textarea></label><p class="directory-form-error" id="directoryTeamError" role="alert"></p><div class="directory-dialog-actions"><button type="button" class="directory-button directory-button--secondary" data-action="directory-close-dialog">Cancel</button><button class="directory-button directory-button--primary" type="submit">Save team</button></div><p class="directory-form-note">Saved in this browser only.</p>
     </form></dialog>
     <dialog class="directory-dialog" id="directoryMemberDialog"><form id="directoryMemberForm" method="dialog">
       <div class="directory-dialog-heading"><div><p class="directory-eyebrow">WORKSPACE DIRECTORY</p><h2>Add a member</h2></div><button type="button" class="directory-icon-button" data-action="directory-close-dialog" aria-label="Close">×</button></div>
@@ -906,6 +1025,107 @@ function directoryDialogsHtml() {
     </form></dialog>
     <dialog class="directory-dialog" id="directoryMentorDialog"><div class="directory-dialog-body"><div class="directory-dialog-heading"><div><p class="directory-eyebrow">MENTOR SUPPORT</p><h2>No mentors are listed yet</h2></div><button type="button" class="directory-icon-button" data-action="directory-close-dialog" aria-label="Close">×</button></div><p id="directoryMentorSummary" class="directory-mentor-summary"></p><p class="directory-mentor-hint">Contact an event organiser to request support.</p><div class="directory-dialog-actions"><button type="button" class="directory-button directory-button--secondary" data-action="directory-close-dialog">Close</button></div></div></dialog>`;
 }
+function judgingPortalHtml() {
+  const teams = judgingTeams();
+  const categories = ["All", ...new Set(teams.map((team) => team.category))];
+  if (!categories.includes(STATE.judgingCategory)) STATE.judgingCategory = "All";
+  const query = STATE.judgingSearch.trim().toLowerCase();
+  const visible = teams.filter((team) => {
+    const own = ownScoreForTeam(team.id);
+    const statusMatch =
+      STATE.judgingFilter === "all" ||
+      (STATE.judgingFilter === "pending" && !own) ||
+      (STATE.judgingFilter === "scored" && !!own);
+    const categoryMatch = STATE.judgingCategory === "All" || team.category === STATE.judgingCategory;
+    const searchMatch = !query || team.name.toLowerCase().includes(query);
+    return statusMatch && categoryMatch && searchMatch;
+  });
+  const scoredCount = teams.filter((team) => ownScoreForTeam(team.id)).length;
+
+  return `<div class="judging-portal">
+    <section class="judging-summary">
+      <div>
+        <p class="judging-eyebrow">JUDGE WORKSPACE</p>
+        <h1>Judging portal</h1>
+        <p>${esc(currentEvent()?.short || "No event selected")} · Scores are private to your account</p>
+      </div>
+      <div class="judging-progress" aria-label="${scoredCount} of ${teams.length} teams scored">
+        <strong>${scoredCount} of ${teams.length}</strong>
+        <span>Teams scored</span>
+        <div><i style="width:${teams.length ? (scoredCount / teams.length * 100) : 0}%"></i></div>
+      </div>
+    </section>
+
+    <section class="judging-controls" aria-label="Team filters">
+      <label class="judging-search"><span>Search teams</span><input class="input" id="judgingSearch" type="search" placeholder="Team name" value="${esc(STATE.judgingSearch)}"></label>
+      <label><span>Category</span><select class="input" id="judgingCategory">${categories.map((category) =>
+        `<option${category === STATE.judgingCategory ? " selected" : ""}>${esc(category)}</option>`
+      ).join("")}</select></label>
+      <div class="judging-status" role="group" aria-label="Judging status">
+        ${[
+          ["all", "All Teams"],
+          ["pending", "Pending / Unscored"],
+          ["scored", "Scored"],
+        ].map(([id, label]) =>
+          `<button type="button" class="pill pill--button${STATE.judgingFilter === id ? " is-active" : ""}" data-action="judging-filter" data-value="${id}" aria-pressed="${STATE.judgingFilter === id}">${label}</button>`
+        ).join("")}
+      </div>
+    </section>
+
+    <section class="judging-grid" aria-label="Competing teams">
+      ${visible.length ? visible.map((team, index) => {
+        const own = ownScoreForTeam(team.id);
+        return `<article class="judging-team-card">
+          <div class="judging-team-heading">
+            <span class="judging-team-number">${String(team.number || index + 1).padStart(2, "0")}</span>
+            <span class="judging-status-badge ${own ? "is-scored" : ""}">${own ? "Scored" : "Pending"}</span>
+          </div>
+          <h2>${esc(team.name)}</h2>
+          <p>${esc(team.role || "Project team")}</p>
+          <div class="judging-team-meta"><span>${esc(team.category)}</span>${own ? `<strong>${own.total} / 40</strong>` : "<strong>Not scored</strong>"}</div>
+          <button class="btn ${own ? "btn--secondary" : "btn--primary"} judging-open" type="button" data-action="judging-open" data-value="${esc(team.id)}"${currentEvent()?.open ? "" : " disabled"}>${!currentEvent()?.open ? "Judging closed" : (own ? "Edit score" : "Score team")}</button>
+        </article>`;
+      }).join("") : `<p class="empty-state u-text-soft judging-empty">No teams match these filters.</p>`}
+    </section>
+
+    <dialog class="judging-dialog" id="judgingDialog">
+      <form id="judgingForm" method="dialog">
+        <div class="judging-dialog-heading">
+          <div><p class="judging-eyebrow">SCORE SUBMISSION</p><h2 id="judgingTeamTitle">Team</h2></div>
+          <button type="button" class="directory-icon-button" data-action="judging-close" aria-label="Close">×</button>
+        </div>
+        <input type="hidden" name="teamId" id="judgingTeamId" value="">
+        <div class="judging-rubric">
+          ${[
+            ["innovation", "Innovation", "Originality and creativity"],
+            ["execution", "Technical Execution", "Quality of implementation"],
+            ["impact", "Impact", "Value and practical usefulness"],
+            ["presentation", "Presentation", "Clarity and communication"],
+          ].map(([id, label, hint]) =>
+            `<div class="judging-criterion">
+              <div class="judging-criterion-heading"><span><strong>${label}</strong><small>${hint}</small></span><output class="judging-score-badge" id="${id}Badge"><b>0.0</b> / 10</output></div>
+              <input type="hidden" name="${id}" id="${id}Score" value="0.0">
+              <div class="judging-scale" data-scale="${id}" role="slider" tabindex="0" aria-label="${label} score" aria-valuemin="0" aria-valuemax="10" aria-valuenow="0" aria-valuetext="0.0 out of 10">
+                <div class="judging-scale-ticks" aria-hidden="true">${Array.from({length: 21}, (_, i) =>
+                  `<i class="${i % 2 === 0 ? "is-major" : "is-minor"}"${i % 2 === 0 ? ` data-number="${i / 2}"` : ""}></i>`
+                ).join("")}</div>
+                <div class="judging-scale-track"><div class="judging-scale-fill"></div><button class="judging-scale-handle" type="button" tabindex="-1" aria-hidden="true"><span class="judging-live-value">0.0</span></button></div>
+              </div>
+            </div>`
+          ).join("")}
+        </div>
+        <label class="judging-feedback">Feedback / notes <span>(optional)</span><textarea class="input" name="feedback" maxlength="500" rows="4" placeholder="Add constructive feedback for this team"></textarea></label>
+        <p class="judging-form-error" id="judgingFormError" role="alert"></p>
+        <div class="judging-dialog-actions">
+          <button type="button" class="btn btn--secondary" data-action="judging-close">Cancel</button>
+          <button type="submit" class="btn btn--primary" id="judgingSubmit">Submit Score</button>
+        </div>
+      </form>
+    </dialog>
+    <div class="judging-toast" id="judgingToast" role="status" aria-live="polite"></div>
+  </div>`;
+}
+
 // This list chooses which page HTML to show.
 const PAGES = {
   live: () => `<div class="live-program"><section>
@@ -921,13 +1141,16 @@ const PAGES = {
 
   teams: () => teamDirectoryHtml(),
 
-  judging: () =>
-    `<p class="u-text-soft u-mt-20">Give each team a score from 0 to 10.</p>` +
-    '<p class="empty-state u-text-soft">No teams are available to score yet.</p>',
+  judging: () => judgingPortalHtml(),
 
   admin: () => {
     const e = currentEvent();
     const programSessions = e ? allSessions().filter((session) => session.ev === e.id).length : 0;
+    const judgingRows = judgingTeams().map((team) => {
+      const aggregate = judgingAggregateForAdmin(team.id);
+      return `<tr><td>${esc(team.name)}</td><td>${aggregate.judgeCount}</td><td>${aggregate.average ? aggregate.average.toFixed(1) : "0.0"} / 40</td></tr>`;
+    }).join("");
+    const judgingSummary = `<section class="panel panel--narrow admin-grid__item"><div class="admin-section-heading"><span class="admin-section-heading__icon">${svg("judging", 21)}</span><h3>Judging summary</h3></div><p class="u-text-soft">Aggregated only for Super Admins.</p><div class="admin-table-wrap"><table class="admin-table"><thead><tr><th>Team</th><th>Judges</th><th>Average</th></tr></thead><tbody>${judgingRows || '<tr><td colspan="3">No teams registered.</td></tr>'}</tbody></table></div></section>`;
     const managedEvents = STATE.events.length;
     const submissionState = e ? (e.open ? "Open" : "Closed") : "Not configured";
     const noticeBoards = noticeManagementPanelHtml("public") + mealSchedulePanelHtml() + noticeManagementPanelHtml("private");
@@ -970,7 +1193,7 @@ const PAGES = {
         </article>
       </div>
     </section>
-    <div class="admin-grid">${settings}${keynotePanelHtml()}${eventPanelHtml()}${noticeBoards}${teamResources}</div>`;
+    <div class="admin-grid">${settings}${judgingSummary}${keynotePanelHtml()}${eventPanelHtml()}${noticeBoards}${teamResources}</div>`;
   },
 
   auth: () => {
@@ -1253,6 +1476,18 @@ function syncSessions() {
    10. ACTIONS: what each click does (looked up by the data-action name)
    ========================================================================== */
 function go(id) {
+  const judgingPage = window.location.pathname.toLowerCase().endsWith("judging-portal.html");
+  if (judgingPage && id !== "judging") {
+    window.location.assign("live-program.html" + (id !== "live" ? "#" + id : ""));
+    return;
+  }
+  if (id === "judging") {
+    if (STATE.role !== "judge") return;
+    if (!window.location.pathname.toLowerCase().endsWith("judging-portal.html")) {
+      window.location.assign("judging-portal.html");
+    }
+    return;
+  }
   if (id === "teams") {
     if (!window.location.pathname.toLowerCase().endsWith("team-directory.html")) {
       window.location.assign("team-directory.html");
@@ -1548,8 +1783,9 @@ function handleDirectoryTeam(form) {
   const name = String(data.get("teamName") || "").trim();
   const number = Number.parseInt(String(data.get("teamNumber") || ""), 10);
   const role = String(data.get("teamRole") || "").trim();
+  const category = String(data.get("teamCategory") || "").trim();
   const error = byId("directoryTeamError");
-  if (!name || !role || !Number.isInteger(number) || number < 1 || number > 99) {
+  if (!name || !role || !category || !Number.isInteger(number) || number < 1 || number > 99) {
     error.textContent = "Please fill in every field. The team number must be between 1 and 99.";
     return;
   }
@@ -1558,7 +1794,7 @@ function handleDirectoryTeam(form) {
     error.textContent = `Team ${number} already exists. Please choose a different number.`;
     return;
   }
-  teams.push({ name, number: String(number), role });
+  teams.push({ name, number: String(number), role, category });
   directoryStorage.set("geekulchaExtraTeams", teams);
   form.reset();
   byId("directoryTeamDialog")?.close();
@@ -1615,6 +1851,34 @@ function handleQuestion(form) {
 
 const ACTIONS = {
   nav: (v) => go(v),
+  "judging-filter": (v) => {
+    STATE.judgingFilter = v;
+    drawPage();
+  },
+  "judging-open": (teamId) => {
+    if (STATE.role !== "judge" || !STATE.loggedIn) return;
+    if (!currentEvent()?.open) {
+      window.alert("Judging is closed for this event.");
+      return;
+    }
+    const team = judgingTeams().find((item) => item.id === teamId);
+    if (!team) return;
+    const dialog = byId("judgingDialog");
+    const form = byId("judgingForm");
+    const existing = ownScoreForTeam(teamId);
+    form.reset();
+    byId("judgingTeamTitle").textContent = team.name;
+    byId("judgingTeamId").value = teamId;
+    byId("judgingSubmit").textContent = existing ? "Update Score" : "Submit Score";
+    byId("judgingFormError").textContent = "";
+    ["innovation", "execution", "impact", "presentation"].forEach((id) => {
+      const value = Number(existing?.criteria?.[id] ?? 0);
+      setJudgingScale(id, value, true);
+    });
+    form.elements.feedback.value = existing?.feedback || "";
+    dialog?.showModal();
+  },
+  "judging-close": (v, button) => button.closest("dialog")?.close(),
   "directory-open-team": () => {
     const dialog = byId("directoryTeamDialog");
     byId("directoryTeamError").textContent = "";
@@ -1749,6 +2013,7 @@ const ACTIONS = {
 };
 
 const CHANGES = {
+  judgingCategory: null,
   event: (target) => {
     STATE.eventId = target.value;
     STATE.topic = "";
@@ -1770,8 +2035,77 @@ const CHANGES = {
   },
 };
 
+function snapJudgingValue(value) {
+  return Math.min(10, Math.max(0, Math.round(value * 2) / 2));
+}
+
+function setJudgingScale(id, value, locked = false) {
+  const scale = document.querySelector(`.judging-scale[data-scale="${id}"]`);
+  const hidden = byId(`${id}Score`);
+  const badge = byId(`${id}Badge`);
+  if (!scale || !hidden || !badge) return;
+  const snapped = snapJudgingValue(Number(value) || 0);
+  const percent = snapped * 10;
+  scale.classList.toggle("is-dragging", !locked);
+  scale.classList.toggle("is-locked", locked);
+  scale.setAttribute("aria-valuenow", String(snapped));
+  scale.setAttribute("aria-valuetext", `${snapped.toFixed(1)} out of 10`);
+  scale.querySelector(".judging-scale-fill").style.width = `${percent}%`;
+  scale.querySelector(".judging-scale-handle").style.left = `${percent}%`;
+  scale.querySelector(".judging-live-value").textContent = snapped.toFixed(1);
+  hidden.value = snapped.toFixed(1);
+  badge.querySelector("b").textContent = snapped.toFixed(1);
+  badge.classList.toggle("is-locked", locked);
+}
+
+function judgingValueFromPointer(scale, event) {
+  const rect = scale.querySelector(".judging-scale-track").getBoundingClientRect();
+  const ratio = rect.width ? (event.clientX - rect.left) / rect.width : 0;
+  return snapJudgingValue(Math.min(10, Math.max(0, ratio * 10)));
+}
+
+function handleJudgingScore(form) {
+  if (STATE.role !== "judge" || !STATE.loggedIn) {
+    window.location.assign("index.html");
+    return;
+  }
+  if (!currentEvent()?.open) {
+    byId("judgingFormError").textContent = "Judging is closed for this event.";
+    return;
+  }
+  const data = new FormData(form);
+  const teamId = data.get("teamId");
+  const criteria = {};
+  for (const id of ["innovation", "execution", "impact", "presentation"]) {
+    const value = Number(data.get(id));
+    if (!Number.isFinite(value) || value < 0 || value > 10 || Math.abs(value * 2 - Math.round(value * 2)) > 0.0001) {
+      byId("judgingFormError").textContent = "Set every criterion to a score from 0.0 to 10.0.";
+      return;
+    }
+    criteria[id] = value;
+  }
+  if (!judgingTeams().some((team) => team.id === teamId)) {
+    byId("judgingFormError").textContent = "This team is no longer available.";
+    return;
+  }
+  const existing = !!ownScoreForTeam(teamId);
+  if (!upsertOwnScore(teamId, criteria, data.get("feedback"))) {
+    byId("judgingFormError").textContent = "Unable to save this score. Browser storage is unavailable.";
+    return;
+  }
+  byId("judgingDialog").close();
+  drawPage();
+  const toast = byId("judgingToast");
+  if (toast) {
+    toast.textContent = existing ? "Score updated successfully." : "Score submitted successfully.";
+    toast.classList.add("is-visible");
+    window.setTimeout(() => toast.classList.remove("is-visible"), 2600);
+  }
+}
+
 const FORMS = {
   qaForm: handleQuestion,
+  judgingForm: handleJudgingScore,
   authForm: handleAuth,
   eventForm: handleEvent,
   keyForm: handleKeynote,
@@ -1795,9 +2129,80 @@ function onClick(e) {
 function onChange(e) {
   const target = e.target,
     change = CHANGES[target.dataset.change];
+  if (target.id === "judgingCategory") {
+    STATE.judgingCategory = target.value;
+    drawPage();
+    return;
+  }
   if (change) return change(target);
 }
+let draggingJudgingScale = null;
+
+function updateJudgingDrag(scale, event) {
+  const rect = scale.querySelector(".judging-scale-track").getBoundingClientRect();
+  const ratio = rect.width ? (event.clientX - rect.left) / rect.width : 0;
+  const liveValue = Math.min(10, Math.max(0, Math.round(ratio * 100) / 10));
+  const percent = liveValue * 10;
+  scale.querySelector(".judging-scale-fill").style.width = `${percent}%`;
+  scale.querySelector(".judging-scale-handle").style.left = `${percent}%`;
+  scale.querySelector(".judging-live-value").textContent = liveValue.toFixed(1);
+  scale.setAttribute("aria-valuenow", liveValue.toFixed(1));
+  scale.setAttribute("aria-valuetext", `${liveValue.toFixed(1)} out of 10`);
+}
+
+function onJudgingPointerDown(event) {
+  const scale = event.target.closest(".judging-scale");
+  if (!scale) return;
+  draggingJudgingScale = scale;
+  scale.setPointerCapture?.(event.pointerId);
+  scale.classList.remove("is-locked");
+  scale.classList.add("is-dragging");
+  byId(`${scale.dataset.scale}Badge`)?.classList.remove("is-locked");
+  updateJudgingDrag(scale, event);
+}
+
+function onJudgingPointerMove(event) {
+  if (!draggingJudgingScale) return;
+  updateJudgingDrag(draggingJudgingScale, event);
+}
+
+function onJudgingPointerUp(event) {
+  if (!draggingJudgingScale) return;
+  updateJudgingDrag(draggingJudgingScale, event);
+  const scale = draggingJudgingScale;
+  const value = judgingValueFromPointer(scale, event);
+  scale.releasePointerCapture?.(event.pointerId);
+  draggingJudgingScale = null;
+  setJudgingScale(scale.dataset.scale, value, true);
+  scale.classList.remove("is-dragging");
+  scale.classList.add("is-locking");
+  window.setTimeout(() => scale.classList.remove("is-locking"), 420);
+}
+
+function onJudgingKeydown(event) {
+  const scale = event.target.closest(".judging-scale");
+  if (!scale || !["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Home", "End"].includes(event.key)) return;
+  event.preventDefault();
+  const hidden = byId(`${scale.dataset.scale}Score`);
+  let value = Number(hidden.value || 0);
+  if (event.key === "ArrowLeft" || event.key === "ArrowDown") value -= 0.5;
+  if (event.key === "ArrowRight" || event.key === "ArrowUp") value += 0.5;
+  if (event.key === "Home") value = 0;
+  if (event.key === "End") value = 10;
+  setJudgingScale(scale.dataset.scale, value, true);
+  scale.classList.add("is-locking");
+  window.setTimeout(() => scale.classList.remove("is-locking"), 420);
+}
+
 function onInput(e) {
+  if (e.target.id === "judgingSearch") {
+    STATE.judgingSearch = e.target.value;
+    drawPage();
+    const input = byId("judgingSearch");
+    input?.focus();
+    input?.setSelectionRange(input.value.length, input.value.length);
+    return;
+  }
   const team = e.target.dataset.score;
   if (team) STATE.scores[team] = Math.min(10, Math.max(0, Number(e.target.value))); // judge scores stay between 0 and 10
 }
@@ -1819,7 +2224,9 @@ function onSubmit(e) {
    11. init(): wire every listener once, then start the app
    ========================================================================== */
 function init() {
-  if (window.location.pathname.toLowerCase().endsWith("team-directory.html")) {
+  if (window.location.pathname.toLowerCase().endsWith("judging-portal.html")) {
+    STATE.page = "judging";
+  } else if (window.location.pathname.toLowerCase().endsWith("team-directory.html")) {
     STATE.page = "teams";
   } else {
     const hashPage = window.location.hash.replace(/^#/, "");
@@ -1837,6 +2244,11 @@ function init() {
   DOM.doc.addEventListener("input", onInput);
   DOM.doc.addEventListener("keydown", onKeydown);
   DOM.doc.addEventListener("submit", onSubmit);
+  DOM.doc.addEventListener("pointerdown", onJudgingPointerDown);
+  DOM.doc.addEventListener("pointermove", onJudgingPointerMove);
+  DOM.doc.addEventListener("pointerup", onJudgingPointerUp);
+  DOM.doc.addEventListener("pointercancel", onJudgingPointerUp);
+  DOM.doc.addEventListener("keydown", onJudgingKeydown);
   DOM.doc.addEventListener("dragstart", onResourceDragStart);
   DOM.doc.addEventListener("dragover", onResourceDragOver);
   DOM.doc.addEventListener("drop", onResourceDrop);
@@ -1849,7 +2261,11 @@ function init() {
   DOM.root.dataset.theme = STATE.theme;
   drawQA();
   drawAll();
-  initAccounts().then(drawAll).catch(drawAll); // load accounts, restore a saved login, then redraw
+  initAccounts().then(() => {
+    if (guardJudgingAccess()) drawAll();
+  }).catch(() => {
+    if (guardJudgingAccess()) drawAll();
+  }); // load accounts, restore a saved login, then redraw
   setInterval(tick, CONFIG.tickMs);
 }
 

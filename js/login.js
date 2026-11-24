@@ -434,6 +434,7 @@ async function startLiveProgramSession(){
     ...existing,
     email,
     name: user.name || existing.name || email.split('@')[0],
+    team: user.team || existing.team || '',
     role,
     key
   };

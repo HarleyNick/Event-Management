@@ -12,3 +12,4 @@
 - Events and program sessions start empty. Super Admins can publish events, manage settings and keynotes, manage public and private notices, update the coder meal schedule, and manage event-specific Team Directory resources. Accounts and event data are stored in the current browser.
 - Authentication and role checks are client-side only; production use requires server-side authentication and authorization.
 - Shared page styles and scripts are in `css/` and `js/`; the Limpopo Dev Ecosystem logo is in `assets/`.
+- `judging-portal.html` provides the dedicated Judge-only scoring workspace. Scores use `(eventId, teamId, judgeId)` composite keys in browser storage and only the logged-in judge's own submissions are shown.
