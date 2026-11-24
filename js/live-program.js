@@ -141,7 +141,6 @@ const MENU = [
 ];
 // TODO: Connect these navigation entries when their team pages are ready.
 const PLACEHOLDER_NAV_IDS = new Set(["mentors"]);
-const SIGNUP_ROLES = ["attendee", "mentor", "team", "judge", "superadmin"]; // roles a person can pick when registering
 // This shows which menus each account role can open.
 const ALLOWED = {
   guest: ["live", "notices", "auth"],
@@ -212,7 +211,6 @@ const STATE = {
   judgingTeamId: "",
   draggingResourceId: null,
   evNote: "",
-  authMode: "login",
   reserved: [],
   scores: {},
   voted: [],
@@ -256,8 +254,6 @@ const DOM = {
   get submissionBadge() { return byId("submissionBadge"); },
   get freezeCaption() { return byId("freezeCaption"); },
   get broadcastMessage() { return byId("broadcastMessage"); },
-  get authForm() { return byId("authForm"); },
-  get authError() { return byId("authError"); },
   get eventForm() { return byId("eventForm"); },
   get eventError() { return byId("eventError"); },
   get keyForm() { return byId("keyForm"); },
@@ -483,14 +479,7 @@ const sessionsNow = () => {
 };
 const sessionsSignature = () => sessionsNow().map((s) => s.id + (s.live ? "L" : "")).join();
 
-/* ---- ACCOUNTS: sign-up and login happen inside the browser ----
-   A person's role comes from the account they registered with. It cannot be changed afterwards.
-   The password is stored as a hash; production authentication should use a backend. */
-// Turns a password into a scrambled fingerprint, so the plain password is never stored.
-async function fingerprint(email, pass) {
-  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(email.toLowerCase() + ":" + pass));
-  return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("");
-}
+/* ---- ACCOUNTS: loaded from the shared sign-in page's browser storage ---- */
 function saveAccounts() {
   try {
     localStorage.setItem(CONFIG.storage.accounts, JSON.stringify(STATE.accounts));
@@ -544,7 +533,7 @@ function guardJudgingAccess() {
     window.location.replace("index.html");
     return false;
   }
-  if (STATE.role !== "judge") {
+  if (STATE.role !== "judge" && STATE.role !== "superadmin") {
     window.location.replace("live-program.html");
     return false;
   }
@@ -570,38 +559,6 @@ async function initAccounts() {
     /* ignore */
   }
 }
-// Log in or register. The role always comes from the account, never from a choice made after signing in.
-async function handleAuth(form) {
-  const f = new FormData(form),
-    email = f.get("email").trim().toLowerCase(),
-    pass = f.get("password"),
-    name = (f.get("name") || "").trim(),
-    err = DOM.authError,
-    register = STATE.authMode === "register";
-  if (!email || !pass || (register && !name)) return showError(form, err, "Please fill in every box.");
-  if (register && pass.length < 6) return showError(form, err, "Please use at least 6 characters for your password.");
-  form.classList.add(CLS.loading);
-  try {
-    const key = await fingerprint(email, pass),
-      found = STATE.accounts.find((a) => a.email === email);
-    if (register) {
-      if (found) return showError(form, err, "That email already has an account. Please log in instead.");
-      const role = SIGNUP_ROLES.includes(f.get("role")) ? f.get("role") : "attendee";
-      const user = { email, name, role, key };
-      STATE.accounts.push(user);
-      saveAccounts();
-      signIn(user);
-    } else {
-      if (!found || found.key !== key) return showError(form, err, "That email or password is not right. Please try again.");
-      signIn(found);
-    }
-    drawAll();
-  } finally {
-    form.classList.remove(CLS.loading);
-  }
-}
-
-
 /* ==========================================================================
    8. RENDERERS: each function fills one part of the screen
    ========================================================================== */
@@ -1026,6 +983,31 @@ function directoryDialogsHtml() {
     <dialog class="directory-dialog" id="directoryMentorDialog"><div class="directory-dialog-body"><div class="directory-dialog-heading"><div><p class="directory-eyebrow">MENTOR SUPPORT</p><h2>No mentors are listed yet</h2></div><button type="button" class="directory-icon-button" data-action="directory-close-dialog" aria-label="Close">×</button></div><p id="directoryMentorSummary" class="directory-mentor-summary"></p><p class="directory-mentor-hint">Contact an event organiser to request support.</p><div class="directory-dialog-actions"><button type="button" class="directory-button directory-button--secondary" data-action="directory-close-dialog">Close</button></div></div></dialog>`;
 }
 function judgingPortalHtml() {
+  if (STATE.role === "superadmin") {
+    const judges = STATE.accounts
+      .filter((account) => account && account.role === "judge" && typeof account.email === "string")
+      .sort((a, b) => String(a.name || a.email).localeCompare(String(b.name || b.email)));
+    return `<div class="judging-portal">
+      <section class="judging-summary">
+        <div>
+          <p class="judging-eyebrow">SUPER ADMIN VIEW</p>
+          <h1>Judge directory</h1>
+          <p>Registered judges for this event. Scores are not shown here.</p>
+        </div>
+        <div class="judging-progress"><strong>${judges.length}</strong><span>${judges.length === 1 ? "Registered judge" : "Registered judges"}</span></div>
+      </section>
+      <section class="judging-grid" aria-label="Registered judges">
+        ${judges.length ? judges.map((judge, index) =>
+          `<article class="judging-team-card judging-person-card">
+            <div class="judging-team-heading"><span class="judging-team-number">${String(index + 1).padStart(2, "0")}</span><span class="judging-status-badge is-scored">Judge</span></div>
+            <h2>${esc(String(judge.name || "Unnamed judge"))}</h2>
+            <p>${esc(judge.email)}</p>
+          </article>`
+        ).join("") : '<p class="empty-state u-text-soft judging-empty">No judge accounts are registered yet.</p>'}
+      </section>
+    </div>`;
+  }
+
   const teams = judgingTeams();
   const categories = ["All", ...new Set(teams.map((team) => team.category))];
   if (!categories.includes(STATE.judgingCategory)) STATE.judgingCategory = "All";
@@ -1197,28 +1179,17 @@ const PAGES = {
   },
 
   auth: () => {
-    // Already signed in: show the account. The role cannot be changed here.
     if (STATE.loggedIn)
       return `<section class="panel panel--narrow panel--auth">
       <h3>You are signed in</h3><p class="u-text-soft">${esc(STATE.user.name)} (${ROLES[STATE.role]})<br>${esc(STATE.user.email)}</p>
-      <p class="u-text-soft">Your menu only shows what your role can use. To use a different role, log out and sign in with a different account.</p>
+      <p class="u-text-soft">Accounts and registration are managed from the shared sign-in page.</p>
+      <p><a class="btn btn--primary" href="index.html">Open sign-in page</a></p>
       <div><button class="btn" data-action="auth-toggle">Log out</button></div></section>`;
-    const register = STATE.authMode === "register";
-    return `<section class="panel panel--narrow panel--auth"><div class="tabs tabs--flush">
-      <button class="tab${withClass(!register, CLS.active)}" data-action="mode" data-value="login">Log in</button>
-      <button class="tab${withClass(register, CLS.active)}" data-action="mode" data-value="register">Register</button>
-      </div>
-    <form class="form" id="authForm" novalidate>${register ? '<label class="field">Your name<input class="input" name="name" autocomplete="name"></label>' : ""}<label class="field">Email<input class="input" name="email" type="email" autocomplete="email">
-      </label><label class="field">Password<input class="input" name="password" type="password" autocomplete="${register ? "new-password" : "current-password"}">
-      </label>
-    ${
-      register
-        ? `<label class="field">I am joining as<select class="input" name="role">${SIGNUP_ROLES.map((id) => `<option value="${id}">${ROLES[id]}</option>`).join("")}</select>
-      </label><p class="form__hint">Your role is set when you register and cannot be changed later.</p>`
-        : ""
-    }
-    <p class="form__error" id="authError" role="alert"></p><button class="btn btn--primary btn--center">${register ? "Create account" : "Log in"}</button>
-      </form></section>`;
+    return `<section class="panel panel--narrow panel--auth">
+      <h3>Sign in or create an account</h3>
+      <p class="u-text-soft">Use the shared account page to sign in or register. Your account and role will be used across event pages.</p>
+      <a class="btn btn--primary btn--center" href="index.html">Continue to sign in / register</a>
+    </section>`;
   },
 };
 
@@ -1482,7 +1453,7 @@ function go(id) {
     return;
   }
   if (id === "judging") {
-    if (STATE.role !== "judge") return;
+    if (STATE.role !== "judge" && STATE.role !== "superadmin") return;
     if (!window.location.pathname.toLowerCase().endsWith("judging-portal.html")) {
       window.location.assign("judging-portal.html");
     }
@@ -1912,10 +1883,6 @@ const ACTIONS = {
     STATE.filter = v;
     drawPage();
   },
-  mode: (v) => {
-    STATE.authMode = v;
-    drawPage();
-  },
   // Edited by NkosinathiM-ship: clear the session and return to the login entry.
   "auth-toggle": () => {
     if (STATE.loggedIn) {
@@ -2106,7 +2073,6 @@ function handleJudgingScore(form) {
 const FORMS = {
   qaForm: handleQuestion,
   judgingForm: handleJudgingScore,
-  authForm: handleAuth,
   eventForm: handleEvent,
   keyForm: handleKeynote,
   publicNoticeForm: (form) => handleNotice(form, "public"),

@@ -367,6 +367,7 @@ $('#form').addEventListener('submit', async e => {
       : '',
     job:   mode === 'register' ? $('#job').value.trim() : '',   // professional title
     org:   mode === 'register' ? $('#org').value.trim() : '',   // organisation
+    about: mode === 'register' ? $('#about').value.trim() : '',
     skills: mode === 'register' ? [...skills] : [],             // tech stack tags
     links:  mode === 'register' ? collectLinks() : {},          // social links
     photo:  mode === 'register' ? ($('#photo').files[0] || null) : null
@@ -435,6 +436,11 @@ async function startLiveProgramSession(){
     email,
     name: user.name || existing.name || email.split('@')[0],
     team: user.team || existing.team || '',
+    job: user.job || existing.job || '',
+    org: user.org || existing.org || '',
+    about: user.about || existing.about || '',
+    skills: mode === 'register' ? user.skills : (existing.skills || []),
+    links: mode === 'register' ? user.links : (existing.links || {}),
     role,
     key
   };
