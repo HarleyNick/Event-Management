@@ -33,6 +33,8 @@ const CONFIG = {
     judgingScores: "portal-judging-scores-v1",
     accounts: "portal-accounts-v1",
     session: "portal-session-v1",
+    mentorRequests: "portal-mentor-requests-v1",
+    mentorPresencePrefix: "portal-mentor-presence-v1:",
   },
   tickMs: 1000,
   freeze: {
@@ -140,8 +142,6 @@ const MENU = [
   { id: "admin", label: "Super Admin console", hint: "Banner, countdown, controls" },
   { id: "auth", label: "Log in & registration", hint: "Sign in or create an account" },
 ];
-// TODO: Connect these navigation entries when their team pages are ready.
-const PLACEHOLDER_NAV_IDS = new Set(["mentors"]);
 // This shows which menus each account role can open.
 const ALLOWED = {
   guest: ["live", "notices", "auth"],
@@ -152,6 +152,11 @@ const ALLOWED = {
   superadmin: ["live", "notices", "mentors", "teams", "judging", "admin", "auth"],
 };
 const TYPES = ["All", "Main Stage", "Workshop Lab", "Mentor Pit", "Lightning Talks"];
+const MENTOR_PRESENCE_TTL_MS = 30000;
+const MENTOR_PRESENCE_INTERVAL_MS = 10000;
+const TAB_ID = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+let mentorChannel = null;
+let mentorPresenceEmail = "";
 const MEALS = [
   { id: "breakfast", label: "Breakfast" },
   { id: "lunch", label: "Lunch" },
@@ -198,6 +203,8 @@ const STATE = {
   privateNotices: loadNotices(CONFIG.storage.privateNotices),
   mealSchedule: loadMealSchedule(),
   teamResources: loadTeamResources(),
+  mentorNotice: "",
+  mentorHubSignature: "",
   publicNoticeNote: "",
   privateNoticeNote: "",
   editingPublicNoticeId: null,
@@ -507,8 +514,10 @@ function signIn(user) {
   } catch (e) {
     /* ignore */
   }
+  updateMentorPresence();
 }
 function signOut() {
+  clearMentorPresence();
   STATE.user = null;
   STATE.role = "guest";
   STATE.loggedIn = false;
@@ -560,6 +569,93 @@ async function initAccounts() {
     /* ignore */
   }
 }
+function loadMentorRequests() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(CONFIG.storage.mentorRequests) || "[]");
+    return Array.isArray(saved)
+      ? saved.filter((request) => request && typeof request.id === "string" &&
+        typeof request.mentorEmail === "string" && typeof request.teamEmail === "string" &&
+        ["pending", "accepted"].includes(request.status) && Array.isArray(request.messages))
+      : [];
+  } catch {
+    return [];
+  }
+}
+function saveMentorRequests(requests) {
+  try {
+    localStorage.setItem(CONFIG.storage.mentorRequests, JSON.stringify(requests));
+    mentorChannel?.postMessage({ type: "updated" });
+    return true;
+  } catch {
+    return false;
+  }
+}
+function updateMentorPresence() {
+  if (!STATE.loggedIn || STATE.role !== "mentor") return;
+  try {
+    localStorage.setItem(
+      `${CONFIG.storage.mentorPresencePrefix}${TAB_ID}`,
+      JSON.stringify({ email: STATE.user.email, updatedAt: Date.now() }),
+    );
+    if (mentorPresenceEmail !== STATE.user.email.toLowerCase()) {
+      mentorChannel?.postMessage({ type: "updated" });
+      mentorPresenceEmail = STATE.user.email.toLowerCase();
+    }
+    STATE.mentorNotice = "";
+  } catch {
+    STATE.mentorNotice = "Unable to update online status because browser storage is unavailable.";
+  }
+}
+function clearMentorPresence() {
+  try {
+    localStorage.removeItem(`${CONFIG.storage.mentorPresencePrefix}${TAB_ID}`);
+    mentorChannel?.postMessage({ type: "updated" });
+    mentorPresenceEmail = "";
+  } catch {
+    STATE.mentorNotice = "Unable to clear online status because browser storage is unavailable.";
+  }
+}
+function onlineMentors() {
+  const active = new Set();
+  try {
+    for (let index = 0; index < localStorage.length; index += 1) {
+      const key = localStorage.key(index);
+      if (!key || !key.startsWith(CONFIG.storage.mentorPresencePrefix)) continue;
+      const presence = JSON.parse(localStorage.getItem(key) || "null");
+      if (!presence || !Number.isFinite(Number(presence.updatedAt)) ||
+        Date.now() - Number(presence.updatedAt) > MENTOR_PRESENCE_TTL_MS) {
+        localStorage.removeItem(key);
+        index -= 1;
+        continue;
+      }
+      if (typeof presence.email === "string") active.add(presence.email.toLowerCase());
+    }
+  } catch {
+    STATE.mentorNotice = "Unable to read mentor availability because browser storage is unavailable.";
+  }
+  return STATE.accounts.filter((account) =>
+    account.role === "mentor" && active.has(account.email.toLowerCase()),
+  );
+}
+function mentorRequests() {
+  return loadMentorRequests();
+}
+function mentorHubDataSignature() {
+  return JSON.stringify({
+    mentors: onlineMentors().map((account) => account.email.toLowerCase()).sort(),
+    requests: mentorRequests(),
+  });
+}
+function syncMentorHub() {
+  const signature = mentorHubDataSignature();
+  if (signature === STATE.mentorHubSignature) return;
+  STATE.mentorHubSignature = signature;
+  if (STATE.page === "mentors") drawPage();
+}
+function announceMentorHubChange() {
+  mentorChannel?.postMessage({ type: "updated" });
+  syncMentorHub();
+}
 /* ==========================================================================
    8. RENDERERS: each function fills one part of the screen
    ========================================================================== */
@@ -578,15 +674,14 @@ function drawSidebar() {
     </div>`;
 }
 
-// Show the items allowed for this role; placeholders remain disabled until linked.
+// Show the items allowed for this role.
 function drawNav() {
   DOM.topNav.innerHTML = `<ul class="top-nav__list">${navItems()
     .map(
       (m) => {
-        const placeholder = PLACEHOLDER_NAV_IDS.has(m.id);
-        const canOpen = !placeholder && can(STATE.role, m.id);
-        const title = placeholder ? "TODO: connect this page later" : canOpen ? m.hint : "Available to Super Admins only";
-        return `<li class="top-nav__item"><button class="top-nav__link${withClass(STATE.page === m.id, CLS.active)}${withClass(!canOpen, "is-disabled")}" data-action="nav" data-value="${m.id}" title="${title}"${canOpen ? "" : ' disabled aria-disabled="true"'}${STATE.page === m.id ? ' aria-current="page"' : ""}><span class="top-nav__icon">${svg(m.id, 18)}</span><span class="top-nav__label">${m.label}</span></button></li>`;
+        const canOpen = can(STATE.role, m.id);
+        const title = canOpen ? m.hint : "Available to Super Admins only";
+        return `<li class="top-nav__item"><button class="top-nav__link${withClass(STATE.page === m.id, CLS.active)}${withClass(!canOpen, "is-disabled")}" data-action="nav" data-value="${m.id}" title="${title}" aria-label="${esc(m.label)}"${canOpen ? "" : ' disabled aria-disabled="true"'}${STATE.page === m.id ? ' aria-current="page"' : ""}><span class="top-nav__icon">${svg(m.id, 18)}</span><span class="top-nav__label">${m.label}</span></button></li>`;
       },
     )
     .join("")}</ul>`;
@@ -621,9 +716,23 @@ function drawBanner() {
 // BROADCAST BAR: shows how long is left. Can be dismissed with the X.
 function drawBroadcast() {
   show(DOM.broadcast, !STATE.bcastOff);
-  DOM.broadcast.innerHTML = `<i class="broadcast__dot"></i><b>Broadcast:</b>${svg("alert", 16)}<span class="broadcast__message" id="broadcastMessage"></span><button class="broadcast__close" data-action="broadcast-close" aria-label="Close this message">${svg("x", 16)}</button>`;
+  DOM.broadcast.innerHTML = `<i class="broadcast__dot"></i><b>Broadcast:</b>${svg("alert", 16)}<span class="broadcast__viewport"><span class="broadcast__track"><span class="broadcast__message" id="broadcastMessage"></span><span class="broadcast__message broadcast__message--copy" aria-hidden="true"></span></span></span><button class="broadcast__close" data-action="broadcast-close" aria-label="Close this message">${svg("x", 16)}</button>`;
 }
-
+function setBroadcastText(text) {
+  const message = DOM.broadcastMessage;
+  if (!message) return;
+  message.textContent = text;
+  const copy = message.nextElementSibling;
+  if (copy) copy.textContent = text;
+  measureBroadcastTicker();
+}
+function measureBroadcastTicker() {
+  const message = DOM.broadcastMessage;
+  const track = message?.parentElement;
+  const viewport = track?.parentElement;
+  if (!message || !track || !viewport) return;
+  track.classList.toggle("is-scrolling", message.scrollWidth > viewport.clientWidth + 1);
+}
 // Create one session card.
 function sessionCard(s) {
   const reserved = STATE.reserved.includes(s.id);
@@ -1109,6 +1218,65 @@ function judgingPortalHtml() {
   </div>`;
 }
 
+function mentorChatHtml(request) {
+  const myEmail = String(STATE.user?.email || "").toLowerCase();
+  const mentor = STATE.accounts.find((account) => account.email.toLowerCase() === request.mentorEmail.toLowerCase());
+  const team = STATE.accounts.find((account) => account.email.toLowerCase() === request.teamEmail.toLowerCase());
+  const messages = request.messages.map((message) => {
+    const mine = String(message.senderEmail).toLowerCase() === myEmail;
+    return `<article class="mentor-chat__message${withClass(mine, "is-mine")}"><strong>${esc(message.senderName)}</strong><p>${esc(message.text)}</p><time>${esc(fmtWhen(message.createdAt))}</time></article>`;
+  }).join("");
+  return `<section class="mentor-chat" aria-label="Chat with ${esc(STATE.role === "mentor" ? (team?.team || team?.name || "team") : (mentor?.name || "mentor"))}">
+    <header class="mentor-chat__header"><div><p class="mentor-eyebrow">1-ON-1 CHAT</p><h3>${esc(STATE.role === "mentor" ? (team?.team || team?.name || "Team") : (mentor?.name || "Mentor"))}</h3></div><span class="mentor-online-status"><i></i> Session open</span></header>
+    <div class="mentor-chat__messages" aria-live="polite">${messages || '<p class="mentor-empty">Your conversation starts here.</p>'}</div>
+    <form class="mentor-chat__form mentor-chat-form" data-request-id="${esc(request.id)}"><input name="message" maxlength="1000" required aria-label="Message" placeholder="Write a message…"><button class="mentor-button mentor-button--primary" type="submit">Send</button></form>
+  </section>`;
+}
+function mentorHubHtml() {
+  const requests = mentorRequests();
+  const email = String(STATE.user?.email || "").toLowerCase();
+  const online = onlineMentors();
+  const isTeam = STATE.role === "team";
+  const isMentor = STATE.role === "mentor";
+  const teamRequests = requests.filter((request) => request.teamEmail.toLowerCase() === email);
+  const incoming = requests.filter((request) => request.mentorEmail.toLowerCase() === email && request.status === "pending");
+  const chats = requests.filter((request) =>
+    request.status === "accepted" &&
+    (request.teamEmail.toLowerCase() === email || request.mentorEmail.toLowerCase() === email),
+  );
+  const mentorCards = online.map((mentor) => {
+    const prior = teamRequests.find((request) => request.mentorEmail.toLowerCase() === mentor.email.toLowerCase());
+    const button = isTeam
+      ? `<button class="mentor-button mentor-button--primary" type="button" data-action="mentor-request-open" data-value="${esc(mentor.email)}"${prior ? " disabled" : ""}>${prior ? (prior.status === "accepted" ? "Session accepted" : "Request sent") : "Request 1-on-1"}</button>`
+      : "";
+    const skills = Array.isArray(mentor.skills) && mentor.skills.length
+      ? mentor.skills.slice(0, 4).map((skill) => `<span>${esc(skill)}</span>`).join("")
+      : `<span>${esc(mentor.job || "Event mentor")}</span>`;
+    return `<article class="mentor-card"><div class="mentor-card__identity"><span class="mentor-avatar">${esc(String(mentor.name || mentor.email).charAt(0).toUpperCase())}</span><div><h3>${esc(mentor.name || "Mentor")}</h3><p>${esc(mentor.job || mentor.org || "Mentor")}</p></div><span class="mentor-online-status"><i></i> Online</span></div>${mentor.about ? `<p class="mentor-card__bio">${esc(mentor.about)}</p>` : ""}<div class="mentor-card__skills">${skills}</div>${button}</article>`;
+  }).join("");
+  const teamStatus = teamRequests.length
+    ? teamRequests.map((request) => {
+      const mentor = STATE.accounts.find((account) => account.email.toLowerCase() === request.mentorEmail.toLowerCase());
+      const status = request.status === "accepted" ? "Accepted — chat is open" : "Waiting for mentor";
+      return `<article class="mentor-request-card"><div><p class="mentor-eyebrow">${esc(status)}</p><h3>${esc(mentor?.name || "Mentor")}</h3><p>${esc(request.details || "1-on-1 mentorship request")}</p></div></article>`;
+    }).join("")
+    : '<p class="mentor-empty">Your mentorship requests will appear here.</p>';
+  const notifications = incoming.length
+    ? incoming.map((request) => `<article class="mentor-notification"><div><p class="mentor-eyebrow">NEW MENTORSHIP REQUEST</p><h3>${esc(request.teamName)} is looking for you</h3><p>${esc(request.details || "The team would like a 1-on-1 session.")}</p><small>Received ${esc(fmtWhen(request.createdAt))}</small></div><button class="mentor-button mentor-button--primary" type="button" data-action="mentor-accept" data-value="${esc(request.id)}">Accept &amp; open chat</button></article>`).join("")
+    : '<p class="mentor-empty">New team requests will appear here.</p>';
+  return `<div class="mentor-hub">
+    <section class="mentor-hero"><div><p class="mentor-eyebrow">LIMPOPO DEV ECOSYSTEM</p><h1>Mentor Hub<span>.</span></h1><p>Connect with an expert for focused, one-on-one support.</p></div><div class="mentor-hero__stat"><strong>${online.length}</strong><span>mentors online</span></div></section>
+    ${STATE.mentorNotice ? `<p class="mentor-notice" role="alert">${esc(STATE.mentorNotice)}</p>` : ""}
+    ${isMentor ? `<section class="mentor-section"><div class="mentor-section__heading"><div><p class="mentor-eyebrow">INBOX</p><h2>Team requests</h2></div><span>${incoming.length} new</span></div><div class="mentor-notifications">${notifications}</div></section>` : ""}
+    <section class="mentor-section"><div class="mentor-section__heading"><div><p class="mentor-eyebrow">${isTeam ? "AVAILABLE NOW" : "MENTOR DIRECTORY"}</p><h2>${isTeam ? "Online mentors" : "Mentors online"}</h2></div><span>${online.length} available</span></div>
+      ${online.length ? `<div class="mentor-grid">${mentorCards}</div>` : '<p class="mentor-empty">No mentors are online right now. Check back soon.</p>'}
+    </section>
+    ${isTeam ? `<section class="mentor-section"><div class="mentor-section__heading"><div><p class="mentor-eyebrow">YOUR ACTIVITY</p><h2>My requests</h2></div></div><div class="mentor-request-list">${teamStatus}</div></section>` : ""}
+    ${chats.length ? `<section class="mentor-section"><div class="mentor-section__heading"><div><p class="mentor-eyebrow">ACCEPTED SESSIONS</p><h2>Your 1-on-1 chats</h2></div></div><div class="mentor-chat-list">${chats.map(mentorChatHtml).join("")}</div></section>` : ""}
+    <dialog class="mentor-dialog" id="mentorRequestDialog"><form id="mentorRequestForm"><header><div><p class="mentor-eyebrow">NEW REQUEST</p><h2>Request a 1-on-1</h2></div><button class="mentor-close" type="button" data-action="mentor-close-dialog" aria-label="Close">×</button></header><p id="mentorRequestRecipient" class="mentor-dialog__recipient"></p><input type="hidden" name="mentorEmail"><label for="mentorRequestDetails">What would you like help with?</label><textarea id="mentorRequestDetails" name="details" maxlength="500" rows="4" placeholder="Share a little context so the mentor can prepare." required></textarea><p class="mentor-form-error" id="mentorRequestError" role="alert"></p><div class="mentor-dialog__actions"><button class="mentor-button" type="button" data-action="mentor-close-dialog">Cancel</button><button class="mentor-button mentor-button--primary" type="submit">Send request</button></div></form></dialog>
+  </div>`;
+}
+
 // This list chooses which page HTML to show.
 const PAGES = {
   live: () => `<div class="live-program"><section>
@@ -1116,9 +1284,7 @@ const PAGES = {
     <div class="tabs tabs--center" role="group" aria-label="Filter sessions by type">${TYPES.map((t) => `<button class="tab${withClass(STATE.filter === t, CLS.active)}" aria-pressed="${STATE.filter === t}" data-action="filter" data-value="${t}">${t}</button>`).join("")}</div>
     ${STATE.notice ? `<p class="notice" role="status">${STATE.notice}</p>` : ""}${liveListHtml()}</section></div>`,
 
-  mentors: () =>
-    `<p class="u-text-soft u-mt-20">Mentor sessions will appear here when available.</p>` +
-    '<p class="empty-state u-text-soft">No mentors are listed yet.</p>',
+  mentors: () => mentorHubHtml(),
 
   notices: () => publicNoticeBoardHtml(),
 
@@ -1199,6 +1365,7 @@ function drawPage() {
   STATE.sessionSignature = sessionsSignature();
   show(DOM.banner, STATE.page !== "auth"); // the login form comes first, with no big banner pushing it down
   DOM.pageContent.innerHTML = PAGES[STATE.page]();
+  STATE.mentorHubSignature = STATE.page === "mentors" ? mentorHubDataSignature() : "";
 }
 function drawAll() {
   drawSidebar();
@@ -1331,7 +1498,7 @@ function tick() {
   const e = currentEvent();
   if (!e) {
     STATE.wasFrozen = null;
-    if (DOM.broadcastMessage) DOM.broadcastMessage.textContent = "No event updates yet.";
+    setBroadcastText("No event updates yet.");
     if (DOM.submissionBadge) {
       DOM.submissionBadge.className = "pill";
       DOM.submissionBadge.textContent = "No event published";
@@ -1347,12 +1514,12 @@ function tick() {
   const left = Math.max(0, Math.floor((new Date(e.dueAt) - Date.now()) / 1000)),
     frozen = left <= 0,
     justFroze = STATE.wasFrozen === false && frozen; // only the tick that crosses zero plays the animation
-  if (DOM.broadcastMessage)
-    DOM.broadcastMessage.textContent =
-      e.note ||
+  setBroadcastText(
+    e.note ||
       (left
         ? `${Math.ceil(left / 3600)} hours until submission portal freeze. Make sure all GitHub repositories are public and contain a valid LICENSE.`
-        : "The submission portal is now frozen.");
+        : "The submission portal is now frozen."),
+  );
   STATE.wasFrozen = frozen;
   paintFreeze(left, justFroze);
   syncSessions();
@@ -1799,6 +1966,83 @@ function handleDirectoryHelp(form) {
   byId("directoryHelpDialog")?.close();
   byId("directoryMentorDialog")?.showModal();
 }
+function handleMentorRequest(form) {
+  const data = new FormData(form);
+  const mentorEmail = String(data.get("mentorEmail") || "").toLowerCase();
+  const details = String(data.get("details") || "").trim();
+  const mentor = onlineMentors().find((account) => account.email.toLowerCase() === mentorEmail);
+  const error = byId("mentorRequestError");
+  if (STATE.role !== "team" || !STATE.loggedIn || !mentor) {
+    error.textContent = "That mentor is no longer online. Refresh the directory and try again.";
+    return;
+  }
+  if (!details) {
+    error.textContent = "Please tell the mentor what you would like help with.";
+    return;
+  }
+  const requests = mentorRequests();
+  if (requests.some((request) =>
+    request.teamEmail.toLowerCase() === STATE.user.email.toLowerCase() &&
+    request.mentorEmail.toLowerCase() === mentorEmail,
+  )) {
+    error.textContent = "You already have a request or session with this mentor.";
+    return;
+  }
+  const teamName = STATE.user.team || STATE.user.name || STATE.user.email;
+  requests.push({
+    id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+    mentorEmail,
+    teamEmail: STATE.user.email,
+    teamName,
+    details,
+    createdAt: Date.now(),
+    status: "pending",
+    messages: [],
+  });
+  if (!saveMentorRequests(requests)) {
+    error.textContent = "Unable to send your request because browser storage is unavailable.";
+    return;
+  }
+  byId("mentorRequestDialog").close();
+  STATE.mentorNotice = `Your request was sent to ${mentor.name || "the mentor"}.`;
+  announceMentorHubChange();
+}
+function acceptMentorRequest(id) {
+  if (!STATE.loggedIn || STATE.role !== "mentor") return;
+  const requests = mentorRequests();
+  const request = requests.find((item) => item.id === id);
+  if (!request || request.mentorEmail.toLowerCase() !== STATE.user.email.toLowerCase()) return;
+  request.status = "accepted";
+  request.acceptedAt = Date.now();
+  if (!saveMentorRequests(requests)) {
+    STATE.mentorNotice = "Unable to accept this request because browser storage is unavailable.";
+  } else {
+    STATE.mentorNotice = `You accepted ${request.teamName}'s request. Your chat is open below.`;
+  }
+  announceMentorHubChange();
+}
+function handleMentorChat(form) {
+  const requestId = form.dataset.requestId;
+  const input = form.elements.message;
+  const text = String(input.value || "").trim();
+  if (!text || !STATE.loggedIn) return;
+  const requests = mentorRequests();
+  const request = requests.find((item) => item.id === requestId && item.status === "accepted");
+  const email = STATE.user.email.toLowerCase();
+  if (!request || ![request.mentorEmail.toLowerCase(), request.teamEmail.toLowerCase()].includes(email)) return;
+  request.messages.push({
+    senderEmail: STATE.user.email,
+    senderName: STATE.user.team || STATE.user.name || STATE.user.email,
+    text,
+    createdAt: Date.now(),
+  });
+  if (!saveMentorRequests(requests)) {
+    STATE.mentorNotice = "Unable to send your message because browser storage is unavailable.";
+  } else {
+    STATE.mentorNotice = "";
+  }
+  announceMentorHubChange();
+}
 function handleQuestion(form) {
   const f = new FormData(form),
     name = f.get("name").trim(),
@@ -1859,6 +2103,22 @@ const ACTIONS = {
   "directory-open-member": () => byId("directoryMemberDialog")?.showModal(),
   "directory-open-help": () => byId("directoryHelpDialog")?.showModal(),
   "directory-close-dialog": (v, button) => button.closest("dialog")?.close(),
+  "mentor-request-open": (email) => {
+    if (!STATE.loggedIn || STATE.role !== "team") return;
+    const mentor = onlineMentors().find((account) => account.email.toLowerCase() === String(email).toLowerCase());
+    if (!mentor) {
+      STATE.mentorNotice = "That mentor is no longer online. Refresh the directory and try again.";
+      return drawPage();
+    }
+    const form = byId("mentorRequestForm");
+    form.reset();
+    form.elements.mentorEmail.value = mentor.email;
+    byId("mentorRequestRecipient").textContent = `Your request will be sent to ${mentor.name || "this mentor"}.`;
+    byId("mentorRequestError").textContent = "";
+    byId("mentorRequestDialog").showModal();
+  },
+  "mentor-close-dialog": (v, button) => button.closest("dialog")?.close(),
+  "mentor-accept": (id) => acceptMentorRequest(id),
   "directory-dismiss-broadcast": () => {
     byId("directory-broadcast")?.remove();
     try { localStorage.setItem("geekulchaBroadcastDismissed", "1"); } catch {}
@@ -2083,6 +2343,7 @@ const FORMS = {
   directoryTeamForm: handleDirectoryTeam,
   directoryMemberForm: handleDirectoryMember,
   directoryHelpForm: handleDirectoryHelp,
+  mentorRequestForm: handleMentorRequest,
 };
 
 function onClick(e) {
@@ -2178,10 +2439,11 @@ function onKeydown(e) {
   // keyboard shortcut: press 1, 2, 3... to open that menu item
   if (/INPUT|TEXTAREA|SELECT/.test(e.target.tagName) || e.ctrlKey || e.metaKey || e.altKey) return;
   const item = navItems()[Number(e.key) - 1];
-  if (item && !PLACEHOLDER_NAV_IDS.has(item.id) && can(STATE.role, item.id)) go(item.id);
+  if (item && can(STATE.role, item.id)) go(item.id);
 }
 function onSubmit(e) {
   e.preventDefault();
+  if (e.target.matches(".mentor-chat-form")) return handleMentorChat(e.target);
   const handler = FORMS[e.target.id];
   if (handler) handler(e.target);
 }
@@ -2205,6 +2467,20 @@ function init() {
   STATE.bannerShrink = parseFloat(readToken("--banner-shrink")) || STATE.bannerShrink;
   STATE.pixelPalette = CONFIG.pixelTokens.map(readToken);
 
+  if ("BroadcastChannel" in window) {
+    try {
+      mentorChannel = new BroadcastChannel("portal-mentor-hub-v1");
+      mentorChannel.addEventListener("message", syncMentorHub);
+    } catch {
+      mentorChannel = null;
+    }
+  }
+  DOM.win.addEventListener("storage", (event) => {
+    if (event.key === CONFIG.storage.mentorRequests) syncMentorHub();
+  });
+  DOM.win.addEventListener("beforeunload", clearMentorPresence);
+  DOM.doc.addEventListener("visibilitychange", updateMentorPresence);
+
   // Event listeners (one delegated listener per event type)
   DOM.doc.addEventListener("click", onClick);
   DOM.doc.addEventListener("change", onChange);
@@ -2221,7 +2497,10 @@ function init() {
   DOM.doc.addEventListener("drop", onResourceDrop);
   DOM.doc.addEventListener("dragend", onResourceDragEnd);
   DOM.win.addEventListener("scroll", onScroll, { passive: true });
-  DOM.win.addEventListener("resize", bannerMetrics);
+  DOM.win.addEventListener("resize", () => {
+    bannerMetrics();
+    measureBroadcastTicker();
+  });
   if (window.ResizeObserver) new ResizeObserver(bannerMetrics).observe(DOM.banner);
 
   // First paint
@@ -2234,6 +2513,10 @@ function init() {
     if (guardJudgingAccess()) drawAll();
   }); // load accounts, restore a saved login, then redraw
   setInterval(tick, CONFIG.tickMs);
+  setInterval(() => {
+    updateMentorPresence();
+    syncMentorHub();
+  }, MENTOR_PRESENCE_INTERVAL_MS);
 }
 
 init(); // this file is loaded with "defer", so the page is ready by now
